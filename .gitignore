@@ -1,5 +1,6 @@
 # Configuration files
 *.ini
+!sudifuzz_config_example.ini
 !sample_application_configuration.ini
 
 # Log files

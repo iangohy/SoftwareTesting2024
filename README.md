@@ -1,5 +1,10 @@
 # 50.053 Software Testing and Verification
 
+## Running
+```
+python sudifuzz.py --config sudifuzz_config_example.ini
+```
+
 ## Development Notes
 ### Testing individual modules
 To run code from `if __name__ == "__main__"` in each individual module, run as module from root directory instead of python file directly.
