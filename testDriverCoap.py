@@ -93,6 +93,7 @@ def testDriver():
     setattr(req, "payload", "hi")
     req.token =  ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(2))
     req.mid = 16003
+    print(req)
     
     thread = threading.Thread(target=client_function, args=(req,1))
     thread.start()
