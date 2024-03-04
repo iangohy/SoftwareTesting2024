@@ -4,6 +4,10 @@ from coapthon.client.helperclient import HelperClient
 from request import Request
 import string
 import random
+from multiprocessing import Process
+import threading
+import time
+
 
 # Please put this file in Coapthon folder
 
@@ -38,17 +42,64 @@ def readInputFileAsRequest(filePath, target):
     return req
     # This can include modifying the length, content type, or structure of the payload.
     
-def testDriver():
+def client_function(request, timeout):
+    # Simulate client activities
     host = "127.0.0.1"
     port = 5683
-       
-    # req = readInputFileAsRequest("test-coap.txt", 0)
     client = HelperClient(server=(host, port))
+    request.destination = client.server
+
+    client.send_request(request, timeout)
+    
+
+    
+def testDriver():
+    # req = readInputFileAsRequest("test-coap.txt", 0)
     paths = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
+    threads = []
+    
+    req2 = Request()
+    req2.type = 0 # confirmable
+    req2.code = 1 # get 
+    req2.mid = 16001
+    req2.uri_path = paths[0]
+    req2.observe = 0 # observe 
+    req2.token =  ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(2))
+    print(req2)
+    
+    thread = threading.Thread(target=client_function, args=((req2, 1)))
+    thread.start()
+    threads.append(thread)
+    
+    time.sleep(5)
     
     req = Request()
+    req.type = 0 # confirmable
+    req.code = 3 # put 
+    req.mid = 16002
+    req.uri_path = paths[0]
+    req.token =  ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(2))
+    setattr(req, "payload", "byebye")
+    print(req)
+    
+    thread = threading.Thread(target=client_function, args=(req,1))
+    thread.start()
+    threads.append(thread)
     
     
+    time.sleep(5)
+    
+    
+    setattr(req, "payload", "hi")
+    req.token =  ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(2))
+    req.mid = 16003
+    
+    thread = threading.Thread(target=client_function, args=(req,1))
+    thread.start()
+    threads.append(thread)
+    
+    for thread in threads:
+        thread.join()
     
     
     
