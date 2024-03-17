@@ -1,0 +1,3 @@
+*.json
+.coverage
+__pycache__
