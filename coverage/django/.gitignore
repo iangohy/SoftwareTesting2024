@@ -1,3 +1,4 @@
 *.json
 .coverage
 __pycache__
+tests.py
