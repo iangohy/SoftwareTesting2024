@@ -11,27 +11,27 @@ class DjangoTestDriver:
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
 
     # oracle to pass in the amount of test and list of inputs
-    def run_fuzz_tests(self, num_tests, list_of_inputs):
-        for i in range(num_tests):
-            """
-            When oracle passed in list of inputs 
-             - response = await self.send_request(list_of_inputs[i])
-             
-            Note: Are we fuzzing endpoints or method?
-            """
+    def run_test(self, list_of_inputs):
+        """
+        When oracle passed in list of inputs 
+            - response = await self.send_request(list_of_inputs[i])
             
-            # dummy
-            response = self.send_request(list_of_inputs)
-            logging.debug(response)
-            self.analyze_results(response)
+        Note: Are we fuzzing endpoints or method?
+        """
+        
+        # dummy
+        response = self.send_request(list_of_inputs)
+        logging.debug(response)
+        self.analyze_results(response)
+            
     
     def send_request(self, input_data):
         """
         Call interpret function to get readable inputs
          - input_data, headers = self.interpret(input_data)
         
-        Note: Fuzzing Message code, uri, message type, payload, token, message id, options, version?
-         - request = Message(code=input_data["code"], uri=input_data["url"], payload=input_data["payload"], mtype=input_data["mtype"], token=input_data["token"])
+        Note: Fuzzing formData and header
+         - input_data["formData"] and input_data["headers"]
         """
         
         url = f"{self.server_url}{self.endpoints[1]}"

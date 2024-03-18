@@ -11,19 +11,19 @@ class CoapTestDriver:
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
     
     # oracle to pass in the amount of test and list of inputs
-    async def run_fuzz_tests(self, num_tests, list_of_inputs):
-        for i in range(num_tests):
-            """
-            When oracle passed in list of inputs 
-             - response = await self.send_request(list_of_inputs[i])
-             
-            Note: Are we fuzzing endpoints?
-            """
+    async def run_test(self, list_of_inputs):
+        """
+        When oracle passed in list of inputs 
+            - response = await self.send_request(list_of_inputs[i])
             
-            # dummy
-            response = await self.send_request(list_of_inputs)
-            logging.debug(response)
-            self.analyze_results(response)
+        Note: Are we fuzzing endpoints?
+        """
+        
+        # dummy
+        response = await self.send_request(list_of_inputs)
+        logging.debug(response)
+        self.analyze_results(response)
+            
     
     async def send_request(self, input_data):
         """
