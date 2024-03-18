@@ -1,4 +1,4 @@
-import requests,random,json,logging
+import logging
 
 from django.test import TestCase, Client
 
@@ -13,13 +13,13 @@ class CoverageTests(TestCase):
         endpoint = "/datatb/product/add/"
 
         form_data = {
-            'name': "jyqdobdeYl",
-            'info': "Dp",
-            'price': "89"
+            'name': "xTDZUbLdyN",
+            'info': "wW",
+            'price': "73"
         }
         logging.info("Input \t%s",form_data)
 
-        method = "get"
+        method = "post"
 
         if method == "post":
             response = c.post(endpoint, form_data, content_type='application/json')

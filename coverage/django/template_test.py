@@ -1,4 +1,4 @@
-import requests,random,json,logging
+import logging
 
 from django.test import TestCase, Client
 

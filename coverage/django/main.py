@@ -32,7 +32,7 @@ def send_request_with_coverage(input):
     f.close()
     
     # Runs the coverage command on the Django directory and generates a JSON report
-    os.system("coverage run --branch --omit='tests.py' {}manage.py test; coverage json -o {}".format(DJANGO_DIRECTORY, COVERAGE_JSON_FILE))
+    os.system("coverage3 run --branch --omit='tests.py' {}manage.py test; coverage3 json -o {}".format(DJANGO_DIRECTORY, COVERAGE_JSON_FILE))
 
     logging.info("Coverage run complete for {}".format(input))
 
