@@ -176,10 +176,6 @@ class DjangoTestDriver:
                     list(new_missing_branches.values())[i],
                 )
 
-                print(list(current_missing_branches.values())[i])
-                print(list(new_missing_branches.values())[i])
-                print(leftover_branches)
-
                 # If we find that the leftover branches are fewer than the current missing branches
                 # That means we have fewer missing branches to cover
                 # That is interesting!
