@@ -1,2 +1,2 @@
-__all__ = ["mutation_fuzzer"]
+__all__ = ["main_fuzzer"]
 
