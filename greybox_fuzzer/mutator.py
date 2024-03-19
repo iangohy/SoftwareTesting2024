@@ -14,6 +14,8 @@ class Mutator:
         self.seed = seed
         self.mutators = [self.delete_random_char]
         modes = ['ascii', 'unicode', 'byte', "int"]
+        # TODO add possibility to modify the chance of delete vs add vs replace/flip
+        # maybe change to class based instead
         if mode not in modes:
             raise ValueError("Invalid mode. Expected one of: %s" % modes)
         if mode == "unicode":
@@ -96,19 +98,19 @@ class Mutator:
         return value[:pos] + value[pos + 1:]
     
     def insert_random_int(self, value, start=0):
-        str(value)
+        value = str(value)
         pos = random.randint(start, len(value) - 1)
         new_digit = chr(random.randint(48, 57))
         return value[:pos] + new_digit + value[pos:]
         
     def replace_random_int(self, value, start=0):
-        str(value)
+        value = str(value)
         pos = random.randint(start, len(value) - 1)
         new_digit = chr(random.randint(48, 57))
         return value[:pos] + new_digit + value[pos + 1:]
         
     def delete_random_int(self, value, start=0):
-        str(value)
+        value = str(value)
         pos = random.randint(start, len(value) - 1)
         return value[:pos] + value[pos + 1:]
     

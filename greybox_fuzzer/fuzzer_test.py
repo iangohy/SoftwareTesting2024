@@ -1,4 +1,4 @@
-from greybox_fuzzer.mutator import Mutator, Seed
+from mutator import Mutator, Seed
 
 fuzzer = Mutator(None)
 
@@ -31,9 +31,10 @@ test_input2 = "Σὲ γνωρίζω ἀπὸ τὴν κόψη" # utf-8 greek, 
 ## TODO , test using Seed object.
 
 modes = ['ascii', 'unicode', 'byte']
-fuzzer2 = Mutator(None, mode='unicode')
+fuzzer2 = Mutator(None, mode='int')
 input3 = test_input1
-for _ in range(1,30):
+input3 = 11111
+for _ in range(1,100):
     input3 = fuzzer2.mutate(input3)
     print(input3)
 
