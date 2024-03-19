@@ -1,19 +1,32 @@
 import random
 import string
 
-class MutationFuzzer:
-    """A mutation fuzzer
+class Mutator:
+    """A mutator 
+    Args:
+            mode (str): either "ascii" or "unicode" or "byte" or "int", default ascii
+    Returns:
+            bytesarray: for "byte" mode only
+            str: the mutated string (for all other modes)
     """
     def __init__(self, seed, mode="ascii"):
         self.mode = mode
         self.seed = seed
         self.mutators = [self.delete_random_char]
-        modes = ['ascii', 'unicode']
+        modes = ['ascii', 'unicode', 'byte', "int"]
         if mode not in modes:
             raise ValueError("Invalid mode. Expected one of: %s" % modes)
         if mode == "unicode":
-            self.mutators.append(self.flip_byte)
+            self.mutators.append(self.replace_random_utf)
             self.mutators.append(self.insert_random_utf)
+        if mode == "byte":
+            self.mutators = []
+            self.mutators.append(self.flip_byte)
+        if mode == "int":
+            self.mutators = []
+            self.mutators.append(self.replace_random_int)
+            self.mutators.append(self.insert_random_int)
+            self.mutators.append(self.delete_random_int)
         else:
             self.mutators.append(self.flip_bit)
             self.mutators.append(self.insert_random_ascii)
@@ -55,23 +68,47 @@ class MutationFuzzer:
             _type_: payload -> bytesarray
         """
         # start_byte = 3 if COAP because header is 4 bytes
-        out = bytes(value.encode("utf-8")) # payload is a utf-8 string
-        
+        if isinstance(value, str):  
+            value = bytes(value.encode("utf-8")) # payload is a utf-8 string
         fuzzed_bytes = bytes([random.getrandbits(8)])
-        return b''.join([out[:start] , fuzzed_bytes , out[start:]])
+        return b''.join([value[:start] , fuzzed_bytes , value[start:]])
+
+    
+    
+    def replace_random_utf(self, value, start=0):
+        pos = random.randint(start, len(value) - 1)
+        new_utf_char = chr(random.randint(0, 1114111))
+        return value[:pos] + new_utf_char + value[pos+1:]
     
     def insert_random_utf(self, value, start=0):
         pos = random.randint(start, len(value) - 1)
         new_utf_char = chr(random.randint(0, 1114111))
-        return value[:pos] + new_utf_char + value[pos + 1:]
+        return value[:pos] + new_utf_char + value[pos:]
          
         
     def insert_random_ascii(self, value, start=0):
         pos = random.randint(start, len(value) - 1)
         new_ascii_char = chr(random.randint(0, 127))
-        return value[:pos] + new_ascii_char + value[pos + 1:]
+        return value[:pos] + new_ascii_char + value[pos:]
         
     def delete_random_char(self, value, start=0):
+        pos = random.randint(start, len(value) - 1)
+        return value[:pos] + value[pos + 1:]
+    
+    def insert_random_int(self, value, start=0):
+        str(value)
+        pos = random.randint(start, len(value) - 1)
+        new_digit = chr(random.randint(48, 57))
+        return value[:pos] + new_digit + value[pos:]
+        
+    def replace_random_int(self, value, start=0):
+        str(value)
+        pos = random.randint(start, len(value) - 1)
+        new_digit = chr(random.randint(48, 57))
+        return value[:pos] + new_digit + value[pos + 1:]
+        
+    def delete_random_int(self, value, start=0):
+        str(value)
         pos = random.randint(start, len(value) - 1)
         return value[:pos] + value[pos + 1:]
     
@@ -80,7 +117,7 @@ class Seed:
         """Initialize from seed data"""
         self.data = data
         
-        # TO DO: adjust this based on fuzzer chunk etc
+        # TODO: adjust this based on fuzzer chunking etc
         self.energy = 0.0
 
     def __str__(self) -> str:
