@@ -2,6 +2,7 @@ import requests
 import logging
 import json
 import os
+import random
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -32,7 +33,17 @@ class DjangoTestDriver:
         # logging.debug(response)
         # self.analyze_results(response)
 
-        self.send_request_2(endpoint=self.endpoints[1], coverage=False)
+        self.send_request_2(
+            endpoint=self.endpoints[1],
+            input_data={
+                # Default fuzzing implementation
+                'name': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
+                'info': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
+                'price': str(random.randint(1, 100)),
+            },
+            method='post',
+            coverage=False
+        )
     
     def send_request(self, input_data):
         """
@@ -70,9 +81,10 @@ class DjangoTestDriver:
         return response
     
     def send_request_2(self, 
+            # Default input config
             endpoint,
             input_data={'name': "hello",'info': "bye",'price': str(1)}, 
-            method="post", # post | get | put | delete | patch
+            method="get", # post | get | put | delete | patch
             coverage=False
         ):
         """
@@ -110,6 +122,8 @@ class DjangoTestDriver:
             os.system("coverage3 run --branch --omit='tests.py' {}manage.py test; coverage3 json --pretty-print -o {}".format(DJANGO_DIRECTORY, COVERAGE_JSON_FILE))
 
             logging.info("Coverage run complete for {}".format(text_to_replace))
+
+            logging.info("Is it interesting? {}".format(self.is_interesting()))
         else:
             # Runs the standard manage.py test command
             os.system("python3 {}manage.py test".format(DJANGO_DIRECTORY))
@@ -124,6 +138,81 @@ class DjangoTestDriver:
         # interpret ASCII to fit to request
         
         return 0
+    
+    def is_interesting(self):
+        # Opens the coverage JSON report
+        f = open(COVERAGE_JSON_FILE, 'r')
+        coverage_data = json.loads(f.read())
+        f.close()
+
+        is_interesting_result = False
+
+        # Store the new missing branches from the report
+        new_missing_branches = {}
+        
+        # Fetch the missing branches field from each file
+        for file in coverage_data['files'].keys():
+            if coverage_data['files'][file]['summary']['missing_branches'] <= 0:
+                continue
+            new_missing_branches[file] = coverage_data['files'][file]['missing_branches']
+
+        # If missing branches store file exists
+        if os.path.exists(MISSING_BRANCHES_FILE):
+
+            # Open it and store the current missing branches
+            f = open(MISSING_BRANCHES_FILE, 'r')
+            current_missing_branches:dict = json.loads(f.read())
+            f.close()
+
+            # For each file index within the missing branch store
+            for i in range(len(current_missing_branches.keys())):
+
+                file = list(current_missing_branches.keys())[i]
+
+                # Find the intersection / common branches between the current and new
+                # We label them as the leftover branches that are still missing
+                leftover_branches = self.find_common_elements(
+                    list(current_missing_branches.values())[i],
+                    list(new_missing_branches.values())[i],
+                )
+
+                print(list(current_missing_branches.values())[i])
+                print(list(new_missing_branches.values())[i])
+                print(leftover_branches)
+
+                # If we find that the leftover branches are fewer than the current missing branches
+                # That means we have fewer missing branches to cover
+                # That is interesting!
+                if len(leftover_branches) < len(list(current_missing_branches.values())[i]):
+                    is_interesting_result = True
+
+                # Assign the leftover branches to the file to be looked over the next coverage test
+                current_missing_branches[file] = leftover_branches
+
+                f = open(MISSING_BRANCHES_FILE, 'w')
+                f.write(json.dumps(current_missing_branches))
+                f.close()
+        
+        # If the missing branches json doesn't exist
+        else:
+            # By default consider the result interesting
+            is_interesting_result = True
+
+            # Begin storing the missing branches
+            f = open(MISSING_BRANCHES_FILE, 'w')
+            f.write(json.dumps(new_missing_branches))
+            f.close()
+
+        return is_interesting_result
+
+    def find_common_elements(self, list1, list2):
+        return [element for element in list1 if element in list2]
+
+    def clean(self):
+        if os.path.exists(MISSING_BRANCHES_FILE):
+            os.remove(MISSING_BRANCHES_FILE)
+        else:
+            logging.error("The directory is already clean")
 
 # Usage
 if __name__ == "__main__":     
