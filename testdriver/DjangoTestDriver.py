@@ -10,7 +10,7 @@ class DjangoTestDriver:
         self.endpoints = ["api/product/", "datatb/product/add/", "datatb/product/edit/",
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
 
-    # oracle to pass in the amount of test and list of inputs
+    # oracle to pass in 
     def run_test(self, list_of_inputs):
         """
         When oracle passed in list of inputs 
@@ -74,4 +74,4 @@ class DjangoTestDriver:
 # Usage
 if __name__ == "__main__":     
     driver = DjangoTestDriver()
-    driver.run_fuzz_tests(2, [])
+    driver.run_test([])

@@ -10,7 +10,7 @@ class CoapTestDriver:
         self.server_url = "coap://127.0.0.1:5683"
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
     
-    # oracle to pass in the amount of test and list of inputs
+    # oracle to pass in 
     async def run_test(self, list_of_inputs):
         """
         When oracle passed in list of inputs 
@@ -59,4 +59,4 @@ class CoapTestDriver:
 # Usage
 if __name__ == "__main__":
     driver = CoapTestDriver()
-    asyncio.run(driver.run_fuzz_tests(2, []))
+    asyncio.run(driver.run_test([]))
