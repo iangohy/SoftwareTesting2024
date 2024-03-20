@@ -61,7 +61,18 @@ class SmartChunk:
             case Mutate.REMOVE_CHUNK:
                 output = self.remove_chunk(output)
 
-        return output
+        output_string = ''
+        for chunk in output:
+            output_string += chunk.chunk_content
+        output_chunk = SmartChunk(self.chunk_type,
+                                  output_string,
+                                  0,
+                                  len(output_string),
+                                  False,
+                                  None,
+                                  output)
+
+        return output_chunk
 
     
     def add_chunk(self, output):
@@ -79,9 +90,9 @@ class SmartChunk:
 
         return output
         
-    def write_output(self, file, output):
+    def write_output(self, file, output_chunk):
         output_string = ''
-        for chunk in output:
+        for chunk in output_chunk.children:
             output_string += chunk.chunk_content
         output_string += '\n'
 
