@@ -57,8 +57,8 @@ class MainFuzzer:
             self.seedQ.append(new_seed)
             input_seed = new_seed
         # TODO send to oracle, if failure received, append to failureQ
-        result = self.send_to_oracle(input_seed)
-        if result == False:
+        test_passes = self.send_to_oracle(input_seed)
+        if test_passes:
             self.failureQ.append(input_seed)
         return self.seedQ, self.failureQ
         
@@ -68,7 +68,7 @@ class MainFuzzer:
     #         # TODO send to oracle
         
     def send_to_oracle(self, seed):
-        # TODO write send to oracle, return False if crashed else return True
+        # TODO write send to oracle, return True if nothing happens else return False if program crashes
         return True
 
 if __name__ == '__main__':
