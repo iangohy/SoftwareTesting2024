@@ -1,5 +1,8 @@
-import json, random
+import json, random, logging
 from IsInteresting import is_interesting
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 def test_function(x):
     i = 0
@@ -42,10 +45,10 @@ def main():
     buckets = [1, 2, 3, 4, 8, 16, 32, 128] # tunable
 
     for index, i in enumerate(input_list):
-        print("\nInput {}".format(index))
+        logging.debug("\nInput {}".format(index))
         is_interesting_result = is_interesting(test_function, i, global_map, buckets)
-        # print(json.dumps(global_map, indent=4, sort_keys=True))
-        print(is_interesting_result)
+        # logging.debug(json.dumps(global_map, indent=4, sort_keys=True))
+        logging.debug(is_interesting_result)
 
 if __name__ == "__main__":
     main()

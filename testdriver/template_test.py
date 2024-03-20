@@ -2,7 +2,7 @@ import logging
 
 from django.test import TestCase, Client
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # coverage run --branch manage.py test [--keepdb]; coverage report > output.txt
 # coverage run --branch manage.py test; coverage json -o output.json
@@ -10,17 +10,17 @@ logging.basicConfig(level=logging.INFO)
 class CoverageTests(TestCase):
     def test_client(self):
         c = Client()
-        endpoint = "|ENDPOINT|"
+        endpoint = "/datatb/product/add/"
 
         form_data = {
-            'name': "|NAME|",
-            'info': "|INFO|",
-            'price': "|PRICE|"
+            'name': "CayfHPmEzC",
+            'info': "FKaXVHuBRo",
+            'price': "99"
         }
         logging.info("Endpoint \t%s",endpoint)
         logging.info("Input \t%s",form_data)
 
-        method = "|METHOD|"
+        method = "post"
 
         if method == "post":
             response = c.post(endpoint, form_data, content_type='application/json')

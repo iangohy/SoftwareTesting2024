@@ -2,6 +2,7 @@ import logging
 
 from django.test import TestCase, Client
 
+logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # coverage run --branch manage.py test [--keepdb]; coverage report > output.txt

@@ -1,5 +1,4 @@
 import random, logging, os, json
-logging.basicConfig(level=logging.INFO)
 
 TEST_TEMPLATE_FILE = 'template_test.py'
 TEST_OUTPUT_FILE = 'tests.py'
@@ -7,16 +6,7 @@ DJANGO_DIRECTORY = '../../../DjangoWebApplication/'
 COVERAGE_JSON_FILE = 'output.json'
 MISSING_BRANCHES_FILE = 'missing_branches.json'
 
-# Default Fuzzing Implementation. To be replaced by external fuzzer.
-text_to_replace = {
-    "ENDPOINT": "/datatb/product/add/",
-    "NAME": ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
-    "INFO": ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=2)),
-    "PRICE": str(random.randint(1, 100)),
-    "METHOD": "post" # post | get | put | delete | patch
-}
-
-def send_request_with_coverage(input):
+def send_request_with_coverage(text_to_replace):
     # Reads the current template file
     f = open(TEST_TEMPLATE_FILE, 'r')
     data = f.read()
@@ -34,7 +24,7 @@ def send_request_with_coverage(input):
     # Runs the coverage command on the Django directory and generates a JSON report
     os.system("coverage3 run --branch --omit='tests.py' {}manage.py test; coverage3 json -o {}".format(DJANGO_DIRECTORY, COVERAGE_JSON_FILE))
 
-    logging.info("Coverage run complete for {}".format(input))
+    logging.info("Coverage run complete for {}".format(text_to_replace))
 
 def is_interesting():
     # Opens the coverage JSON report
@@ -108,5 +98,17 @@ def clean():
         logging.error("The directory is already clean")
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
+
+    # Default Fuzzing Implementation. To be replaced by external fuzzer.
+    text_to_replace = {
+        "ENDPOINT": "/datatb/product/add/",
+        "NAME": ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
+        "INFO": ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=2)),
+        "PRICE": str(random.randint(1, 100)),
+        "METHOD": "post" # post | get | put | delete | patch
+    }
+
     send_request_with_coverage(text_to_replace)
     logging.info("Is it interesting? {}".format(is_interesting()))

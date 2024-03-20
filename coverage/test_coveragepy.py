@@ -1,4 +1,8 @@
 from coverage import Coverage
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 def test_function(x):
     i = 0
@@ -30,14 +34,14 @@ input_list = [
 
 def main():
     for index, i in enumerate(input_list):
-        print("\nInput {}".format(index))
+        logging.debug("\nInput {}".format(index))
         cov = Coverage()
         cov.start()
         test_function(i)
         cov.stop()
 
         executed_lines = cov.json_report(outfile="report{}".format(index))
-        print(executed_lines)
+        logging.debug(executed_lines)
 
 if __name__ == "__main__":
     main()

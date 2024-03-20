@@ -3,8 +3,6 @@ from aiocoap import Context, Message, Code
 import asyncio
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
-
 class CoapTestDriver:
     def __init__(self):
         self.server_url = "coap://127.0.0.1:5683"
@@ -58,5 +56,7 @@ class CoapTestDriver:
     
 # Usage
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
     driver = CoapTestDriver()
     asyncio.run(driver.run_test([]))

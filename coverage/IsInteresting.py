@@ -1,5 +1,8 @@
 from FuzzingCoverage import Coverage
-import json
+import json, logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 def is_interesting(func, input, global_map, buckets):
     # perform coverage test
@@ -19,7 +22,7 @@ def is_interesting(func, input, global_map, buckets):
                 # we start counting
                 shared_mem[tuple_format] = 1
 
-        # print(json.dumps(shared_mem,indent = 4, sort_keys=True))
+        logging.debug(json.dumps(shared_mem,indent = 4, sort_keys=True))
 
         is_interesting_result = False
 
@@ -39,13 +42,13 @@ def is_interesting(func, input, global_map, buckets):
                     # checks if the number of repetitions is smaller than a particular bucket count
                     # if it is, the previous bucket is the one we are looking for
                     # if our bucket is False, we mark it as interesting, and set then set it to True
-                    # print(repetitions, tuple_format ,global_map[tuple_format], index-1)
+                    logging.debug(repetitions, tuple_format ,global_map[tuple_format], index-1)
                     if not global_map[tuple_format][index - 1]:
                         is_interesting_result = True
                         global_map[tuple_format][index - 1] = True
-                        # print("Interesting!")
+                        logging.debug("Interesting!")
                     break
                     # if our tuple bucket is already True, it's not interesting. we don't do anything
-            # print("Not interesting")
+            logging.debug("Not interesting")
 
         return is_interesting_result

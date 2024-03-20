@@ -1,6 +1,5 @@
 import random, logging, os, json, asyncio, subprocess
 from aiocoap import Context, Message, Code
-logging.basicConfig(level=logging.DEBUG)
 
 SERVER_URL = 'coap://127.0.0.1:5683'
 COAPTHON_DIRECTORY = '../../../CoAPthon/'
@@ -111,5 +110,7 @@ METHOD = 'post'
 INPUT = "qwiojoidjqwaioji!"
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
     asyncio.run(send_request_with_coverage(ENDPOINT, METHOD, INPUT))
     logging.info("Is it interesting? {}".format(is_interesting()))
