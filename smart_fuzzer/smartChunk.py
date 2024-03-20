@@ -1,7 +1,7 @@
 import random
 from enum import Enum
-from chunk_logger import Logger
-from input_models.djangoDict import DjangoDict
+from smart_fuzzer.chunk_logger import Logger
+from smart_fuzzer.input_models.djangoDict import DjangoDict
 
 class SmartChunk:
     def __init__(self, chunk_type, chunk_content=None, start_index=0, end_index=0, modifiable=False, next=None, children=[]):
@@ -18,7 +18,6 @@ class SmartChunk:
         self.children.append(child_chunk)
     
     def get_chunks(self, seed_string):
-
         if (isinstance(self.chunk_type, DjangoDict)):
             self.chunk_content = seed_string
             self.start_index = 0
