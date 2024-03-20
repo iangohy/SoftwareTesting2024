@@ -39,6 +39,16 @@ class Mutator:
         mutator = random.choice(self.mutators)
         return mutator(string, start)
     
+    def mutate_n_times(self, string, n=1, start=0):  # to do: mod this to be Seed obj if needed
+        """Call when mutating more than once when mutating a string"""
+        output = string
+        for _ in range(0, n):
+            if (len(output)==1):
+                break
+            mutator = random.choice(self.mutators)
+            output = mutator(output, start)
+        return output
+    
     def setup(self):
         if self.seed != None:
             random.seed(self.seed)
@@ -114,16 +124,3 @@ class Mutator:
         pos = random.randint(start, len(value) - 1)
         return value[:pos] + value[pos + 1:]
     
-class Seed:
-    def __init__(self, data: str) -> None:
-        """Initialize from seed data"""
-        self.data = data
-        
-        # TODO: adjust this based on fuzzer chunking etc
-        self.energy = 0.0
-
-    def __str__(self) -> str:
-        """Returns data as string"""
-        return self.data
-
-    __repr__ = __str__
