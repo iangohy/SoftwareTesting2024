@@ -37,7 +37,7 @@ input3 = test_input1
 input3 = 11111
 input3 = Seed("foxy life")
 for _ in range(1,100):
-    input3 = fuzzer2.mutate(input3)
+    input3 = fuzzer2.mutate_n_times(input3)
     print(input3)
 
 print(int("-01"))
