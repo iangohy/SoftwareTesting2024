@@ -114,16 +114,3 @@ class Mutator:
         pos = random.randint(start, len(value) - 1)
         return value[:pos] + value[pos + 1:]
     
-class Seed:
-    def __init__(self, data: str) -> None:
-        """Initialize from seed data"""
-        self.data = data
-        
-        # TODO: adjust this based on fuzzer chunking etc
-        self.energy = 0.0
-
-    def __str__(self) -> str:
-        """Returns data as string"""
-        return self.data
-
-    __repr__ = __str__

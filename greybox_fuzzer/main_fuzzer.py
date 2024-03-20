@@ -1,7 +1,8 @@
 import logging
-from mutator import Mutator, Seed
+from mutator import Mutator
 from typing import Any, List
-from oracle.oracle import Oracle
+import random
+# from oracle.oracle import Oracle
 
 log = logging.getLogger(__name__)
 log.info("Hello, world")
@@ -12,7 +13,7 @@ class MainFuzzer:
         self.seed = init_seed
         self.seedQ = seedQ
         self.failureQ = failureQ
-        self.oracle = Oracle("sudifuzz_config_example.ini")
+        # self.oracle = Oracle("sudifuzz_config_example.ini")
         self.mutator = Mutator(None, mode=mode) # set the mode here, seed here is for random
             
     def set_seed(self, seed):
@@ -20,6 +21,14 @@ class MainFuzzer:
         self.original_seed = seed
         self.seed = seed
         
+    def assign_energy(self):
+        for seed in self.seedQ:
+            seed.energy = 1
+    
+    def choose_next(self):
+        seed = random.choices(self.seedQ)
+        return seed
+    
     def generate_mutations_ten(self):
         """generate 10 consecutive mutations and append to self.seedQ"""
         mutated_seed = self.seed
@@ -56,4 +65,26 @@ if __name__ == '__main__':
     seed = "This is a test seed."
     mainfuzzer = MainFuzzer(seed, seedQ, failureQ)
     mainfuzzer.fuzz()
+
+class Seed:
+    def __init__(self, data: str) -> None:
+        """Initialize from seed data"""
+        self.data = data
+        
+        # TODO: adjust this based on fuzzer chunking etc
+        self.energy = 0.0
+
+    def __str__(self) -> str:
+        """Returns data as string"""
+        return self.data
+
+    def __len__(self):
+        return len(self.data)
     
+    def __getitem__(self, key): 
+        return self.data[key]
+        
+    def __setitem__(self, key, value):
+        self.data[key] = value
+    
+    __repr__ = __str__

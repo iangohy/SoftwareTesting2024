@@ -1,4 +1,5 @@
-from mutator import Mutator, Seed
+from mutator import Mutator
+from main_fuzzer import Seed
 
 fuzzer = Mutator(None)
 
@@ -31,9 +32,10 @@ test_input2 = "Σὲ γνωρίζω ἀπὸ τὴν κόψη" # utf-8 greek, 
 ## TODO , test using Seed object.
 
 modes = ['ascii', 'unicode', 'byte']
-fuzzer2 = Mutator(None, mode='int')
+fuzzer2 = Mutator(None, mode='ascii')
 input3 = test_input1
 input3 = 11111
+input3 = Seed("foxy life")
 for _ in range(1,100):
     input3 = fuzzer2.mutate(input3)
     print(input3)
