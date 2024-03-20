@@ -4,8 +4,11 @@ import json
 import os
 import random
 
+from smart_fuzzer.smartChunk import SmartChunk
+logger = logging.getLogger(__name__)
+
 class DjangoTestDriver:
-    def __init__(self, django_dir, test_template_file, test_output_file, coverage_json_file, missing_branches_file):
+    def __init__(self, django_dir="../../DjangoWebApplication/", test_template_file="./testdriver/template_test.py", test_output_file="tests.py", coverage_json_file="output.json", missing_branches_file="missing_branches.json"):
         self.server_url = "http://127.0.0.1:8000/"
         self.endpoints = ["api/product/", "datatb/product/add/", "datatb/product/edit/",
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
@@ -16,21 +19,12 @@ class DjangoTestDriver:
         self.missing_branches_file = missing_branches_file
 
     # oracle to pass in the amount of test and list of inputs
-    def run_test(self, list_of_inputs=[]):
-        """
-        When oracle passed in list of inputs 
-            - response = await self.send_request(list_of_inputs[i])
-            
-        Note: Are we fuzzing endpoints or method?
-        """
-        
-        # dummy
-        # response = self.send_request(list_of_inputs)
-        # logging.debug(response)
-        # self.analyze_results(response)
+    def run_test(self, chunk: SmartChunk, coverage: bool):
+        logger.debug(f"Received chunk with content: {chunk.chunk_content}")
+        chunk_endpoint = chunk.chunk_content
 
         self.send_request_2(
-            endpoint=self.endpoints[1],
+            endpoint=chunk_endpoint,
             input_data={
                 # Default fuzzing implementation
                 'name': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
@@ -38,7 +32,7 @@ class DjangoTestDriver:
                 'price': str(random.randint(1, 100)),
             },
             method='post',
-            coverage=True
+            coverage=coverage
         )
     
     def send_request(self, input_data):
@@ -100,6 +94,7 @@ class DjangoTestDriver:
         }
 
         # Reads the current template file
+        logger.debug(self.test_template_file)
         f = open(self.test_template_file, 'r')
         data = f.read()
         f.close()

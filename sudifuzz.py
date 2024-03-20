@@ -3,6 +3,7 @@
 import argparse
 import logging
 import configparser
+import time
 
 from oracle.oracle import Oracle
 from greybox_fuzzer.main_fuzzer import MainFuzzer
@@ -64,8 +65,9 @@ if len(errors) > 0:
     exit()
 
 # == Initialise components
-# TODO: pass in oracle configuration once oracle package has been updated
 oracle = Oracle(config["target_application"])
+oracle.start_target_application_threaded()
+time.sleep(5)
 
 # == Chunk Preprocessing
 # - Configuration file (general): This configuration file is for the entire sudifuzz program
@@ -83,4 +85,9 @@ except Exception as e:
     logger.exception(e)
 
 logger.info("===========")
+logger.info("Closing oracle")
+# TODO: Proper oracle closing handling
+oracle.signal_handler()
+logger.info("===========")
 logger.info("Sudifuzz exited")
+logger.info("===========")

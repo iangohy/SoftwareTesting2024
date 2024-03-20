@@ -9,6 +9,7 @@ import requests
 
 from oracle.utils import non_block_read
 from smart_fuzzer.smartChunk import SmartChunk
+from testdriver.DjangoTestDriver import DjangoTestDriver
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,11 @@ class Oracle:
         self.target_app_config = target_app_config
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
+        if target_app_config["test_driver"] == "DjangoTestDriver":
+            self.test_driver = DjangoTestDriver()
+        else:
+            raise RuntimeError("Invalid test driver constant")
+        self.coverage = target_app_config.getboolean("coverage")
 
     def start_application_persistent(self):
         while True:
@@ -87,14 +93,14 @@ class Oracle:
                 if blacklist_phrase.lower() in line.lower():
                     raise OracleCrashDetected(f"blacklist phrase [{blacklist_phrase}] detected")
 
-    def signal_handler(self, signum, frame):
+    def signal_handler(self, signum="", frame=""):
         logger.info("Setting exit_event")
         self.exit_event.set()
 
     # Runs the test and returns True if successful and False if crash
     def run_test(self, chunk: SmartChunk):
         """Sends test input SmartChunk to test driver. Returns failed, isInteresting, additional_info_dict"""
-        # TODO: Call test driver
+        self.test_driver.run_test(chunk, self.coverage)
         return (False, True, {"remarks": "some gud stuff"})
     
         # Check if crash
