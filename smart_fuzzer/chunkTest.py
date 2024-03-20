@@ -12,7 +12,8 @@ def main():
     django_chunk.get_chunks(django_chunk.chunk_content)
 
     for i in range(10):
-        django_chunk.mutate()
+        output = django_chunk.mutate()
+        django_chunk.write_output("smart_fuzzer/mutation_outputs/django_outputs.txt", output)
 
 if __name__ == "__main__":
     main()

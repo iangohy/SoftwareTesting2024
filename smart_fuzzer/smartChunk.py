@@ -61,7 +61,7 @@ class SmartChunk:
             case Mutate.REMOVE_CHUNK:
                 output = self.remove_chunk(output)
 
-        self.write_output(output)
+        return output
 
     
     def add_chunk(self, output):
@@ -75,21 +75,21 @@ class SmartChunk:
     def remove_chunk(self, output):
         chosen_chunk = random.choice(self.children)
         if (chosen_chunk.modifiable):
-            position = random.randrange(0, len(self.children))
-            output.remove(position, chosen_chunk)
+            output.remove(chosen_chunk)
 
         return output
         
-    def write_output(self, output):
+    def write_output(self, file, output):
         output_string = ''
         for chunk in output:
             output_string += chunk.chunk_content
         output_string += '\n'
 
         if (isinstance(self.chunk_type, DjangoDict)):
-            output_file = open("smart_fuzzer/mutation_outputs/django_outputs.txt", "a")
+            output_file = open(file, "a")
             output_file.write(output_string)
+            output_file.close()
 
 class Mutate(Enum):
     ADD_CHUNK = 1
-    REMOVE_CHUNK = 1
+    REMOVE_CHUNK = 2
