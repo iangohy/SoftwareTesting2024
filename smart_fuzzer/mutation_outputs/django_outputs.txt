@@ -1,0 +1,10 @@
+http://127.0.0.1:8000/api/product/product/delete/
+http://127.0.0.1:8000/api/product/delete/
+http://127.0.0.1:8000/product/delete/
+http://127.0.0.1:8000/api/delete/
+http://127.0.0.1:8000/api/delete/
+http://127.0.0.1:8000/product/delete/
+http://127.0.0.1:8000/api/product/delete/
+api/http://127.0.0.1:8000/api/product/delete/
+product/http://127.0.0.1:8000/api/product/delete/
+http://127.0.0.1:8000/api/api/product/delete/

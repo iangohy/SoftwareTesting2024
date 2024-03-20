@@ -1,20 +1,19 @@
 import logging
-from mutator import Mutator
+from greybox_fuzzer.mutator import Mutator
 from typing import Any, List
 import random
-# from oracle.oracle import Oracle
+from oracle.oracle import Oracle
+from smart_fuzzer.smartChunk import SmartChunk
 
-log = logging.getLogger(__name__)
-log.info("Hello, world")
+
+logger = logging.getLogger(__name__)
 
 class MainFuzzer:
-    def __init__(self, init_seed, seedQ: List[Any], failureQ:List[Any], mode='ascii'):
-        self.original_seed = init_seed
-        self.seed = init_seed
+    def __init__(self, seedQ: List[Any], oracle: Oracle, max_fuzz_cycles=10, mode='ascii'):
         self.seedQ = seedQ
-        self.ori_seedQ_len = 1
-        self.failureQ = failureQ
-        # self.oracle = Oracle("sudifuzz_config_example.ini")
+        self.failureQ = []
+        self.oracle = oracle
+        self.max_fuzz_cycles = max_fuzz_cycles
         self.mutator = Mutator(None, mode=mode) # set the mode here, seed here is for random
         self.seed_idx = 0
             
@@ -24,52 +23,52 @@ class MainFuzzer:
         self.seed = seed
         
     def assign_energy(self):
-        for seed in self.seedQ:
-            seed.energy = 1
+        # Start with constant energy assignment
+        return 10
     
-    def choose_next(self):
-        seed = random.choices(self.seedQ)
+    def choose_next(self) -> SmartChunk:
+        # Randomly choose an item from the seed q and pop out
+        seed = self.seedQ.pop(random.randint(0, len(self.seedQ)-1))
         return seed
     
-    def generate_mutations_ten(self):
-        """generate 10 consecutive mutations and append to self.seedQ"""
-        mutated_seed = self.seed
-        for _ in range(0,10):
-            mutated_seed = self.mutator.mutate(mutated_seed)
-            self.seedQ.append(mutated_seed)
-        return
+    def mutate(self):
+        mutated_seed = self.mutator.mutate(mutated_seed)
+        self.seedQ.append(mutated_seed)
         
     def getQueues(self):
         """Return seedQ and failureQ"""
         return self.seedQ, self.failureQ
+
         
     def fuzz(self):
-        """Send all seeds at least once to oracle, else fuzz one seed and send to oracle, return seedQ and failureQ"""
-        input_seed = None
-        if self.seed_idx < self.ori_seedQ_len:
-            # currently seedQ should only start with one seed
-            input_seed = self.seedQ[self.seed_idx]
-            self.seed_idx += 1
-        else:
-            # mutate an input and append to seedQ
-            new_seed = self.choose_next()
-            new_seed = self.mutator.mutate_n_times(new_seed, n=3)
-            self.seedQ.append(new_seed)
-            input_seed = new_seed
-        # TODO send to oracle, if failure received, append to failureQ
-        test_passes = self.send_to_oracle(input_seed)
-        if test_passes:
-            self.failureQ.append(input_seed)
-        return self.seedQ, self.failureQ
-        
-    # def fuzz_hundred(self):
-    #     for _ in range(0,100):
-    #         input = self.seedQ.pop() # pop last
-    #         # TODO send to oracle
-        
-    def send_to_oracle(self, seed):
-        # TODO write send to oracle, return True if nothing happens else return False if program crashes
-        return True
+        """Follow greybox fuzzing algorithm, return seedQ and failureQ"""
+        for fuzz_cycle_num in range(self.max_fuzz_cycles):
+            logger.info(f">>>> Starting fuzzing cycle {fuzz_cycle_num + 1}")
+
+            try:
+                next_input = self.choose_next()
+            except Exception as e:
+                logger.error("Unable to obtain next_input")
+                logger.exception(e)
+                return
+            
+            energy = self.assign_energy()
+
+            for i in range(energy):
+                logger.info(f">> Energy cycle: {i+1}/{energy}")
+                mutated_chunk = next_input.mutate()
+                failure, isInteresting, info = self.send_to_oracle(mutated_chunk)
+                logger.info(f"Test result: failure {failure} | isInteresting {isInteresting} | info {info}")
+                if failure:
+                    # Add to failure queue
+                    self.failureQ.append(mutated_chunk)
+                elif isInteresting:
+                    self.seedQ.append(mutated_chunk)
+
+        return self.seedQ, self.failureQ 
+
+    def send_to_oracle(self, chunk):
+        return self.oracle.run_test(chunk)
 
 if __name__ == '__main__':
     seedQ = []

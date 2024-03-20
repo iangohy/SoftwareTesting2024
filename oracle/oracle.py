@@ -1,26 +1,28 @@
 from subprocess import Popen, PIPE, STDOUT
 import time
 import logging
-import sys
 import os
 import signal
 from oracle.custom_exceptions import OracleCrashDetected
-import configparser
 import threading
 import requests
 
 from oracle.utils import non_block_read
+from smart_fuzzer.smartChunk import SmartChunk
+from testdriver.DjangoTestDriver import DjangoTestDriver
 
 logger = logging.getLogger(__name__)
 
 class Oracle:
-    def __init__(self, configuration_filename):
-        self.configuration_filename = configuration_filename
-        config = configparser.ConfigParser()
-        config.read(configuration_filename)
-        self.target_app_config = config["target_application"]
+    def __init__(self, target_app_config):
+        self.target_app_config = target_app_config
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
+        if target_app_config["test_driver"] == "DjangoTestDriver":
+            self.test_driver = DjangoTestDriver()
+        else:
+            raise RuntimeError("Invalid test driver constant")
+        self.coverage = target_app_config.getboolean("coverage")
 
     def start_application_persistent(self):
         while True:
@@ -91,33 +93,26 @@ class Oracle:
                 if blacklist_phrase.lower() in line.lower():
                     raise OracleCrashDetected(f"blacklist phrase [{blacklist_phrase}] detected")
 
-    def signal_handler(self, signum, frame):
+    def signal_handler(self, signum="", frame=""):
         logger.info("Setting exit_event")
         self.exit_event.set()
 
     # Runs the test and returns True if successful and False if crash
-    def run_test(self, argument):
-        # Send request
-        try:
-            r = requests.get(f"http://localhost:5000/{argument}")
-            # If get, valid response, then is not crash
-            if r.status_code == 200:
-                time.sleep(1)
-                return True
-        except Exception:
-            logger.error("Exception occurred in request")
-
-        time.sleep(2)
+    def run_test(self, chunk: SmartChunk):
+        """Sends test input SmartChunk to test driver. Returns failed, isInteresting, additional_info_dict"""
+        self.test_driver.run_test(chunk, self.coverage)
+        return (False, True, {"remarks": "some gud stuff"})
+    
         # Check if crash
         if self.is_crashed.is_set():
             logger.info("is_crashed set to True")
             self.is_crashed.clear()
             # Restart application
             self.start_target_application_threaded()
-            return False
+            return (True, True, {})
         else:
             logger.info("is_crashed set to False")
-            return True
+            return (False, True, {})
 
         return False
 

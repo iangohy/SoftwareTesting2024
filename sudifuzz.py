@@ -3,8 +3,12 @@
 import argparse
 import logging
 import configparser
+import time
 
 from oracle.oracle import Oracle
+from greybox_fuzzer.main_fuzzer import MainFuzzer
+from smart_fuzzer.input_models.djangoDict import DjangoDict
+from smart_fuzzer.smartChunk import SmartChunk
 
 logger = logging.getLogger(__name__)
 
@@ -61,26 +65,29 @@ if len(errors) > 0:
     exit()
 
 # == Initialise components
-seedQ = []
-failureQ = []
-# TODO: pass in oracle configuration once oracle package has been updated
-oracle = Oracle("sudifuzz_config_example.ini")
+oracle = Oracle(config["target_application"])
+oracle.start_target_application_threaded()
+time.sleep(5)
 
 # == Chunk Preprocessing
 # - Configuration file (general): This configuration file is for the entire sudifuzz program
 # - Chunks: XML structure, seed input..., filepaths should be defined in configuration file
 # Validate filepaths and generate chunks
+seed_chunk = SmartChunk(DjangoDict(), "http://127.0.0.1:8000/api/product/delete/")
+seed_chunk.get_chunks("http://127.0.0.1:8000/api/product/delete/")
+seedQ = [seed_chunk]
 
 # == Main Fuzzer
-cycle_num = 1
 try:
-    logger.info(f"Main Fuzzer Cycle {cycle_num}")
-    # Main fuzzer code goes here
-    # seedQ, failureQ = main_fuzzer(seedQ, failureQ, oracle)
-    cycle_num += 1
+    main_fuzzer = MainFuzzer(seedQ, oracle)
+    seedQ, failureQ = main_fuzzer.fuzz()
 except Exception as e:
     logger.exception(e)
-    # Save states -> seedQ, failureQ
 
-logger.info("===========s")
+logger.info("===========")
+logger.info("Closing oracle")
+# TODO: Proper oracle closing handling
+oracle.signal_handler()
+logger.info("===========")
 logger.info("Sudifuzz exited")
+logger.info("===========")
