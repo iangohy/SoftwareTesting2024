@@ -108,7 +108,7 @@ class DjangoTestDriver:
     
         if coverage:
             # Runs the coverage command on the Django directory and generates a JSON report
-            os.system("coverage3 run --branch --omit='tests.py' {}manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, self.coverage_json_file))
+            os.system("coverage3 run --branch --omit='tests.py' {}manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, os.getcwd()+'/testdriver/output.json'))
 
             logging.info("Coverage run complete for {}".format(text_to_replace))
 
@@ -132,7 +132,7 @@ class DjangoTestDriver:
     def is_interesting(self):
         # Opens the coverage JSON report
         try:
-            f = open(os.getcwd()+'output.json', 'r')
+            f = open(os.getcwd()+'/testdriver/output.json', 'r')
             coverage_data = json.loads(f.read())
             f.close()
         except Exception:
@@ -150,11 +150,11 @@ class DjangoTestDriver:
             new_missing_branches[file] = coverage_data['files'][file]['missing_branches']
 
         # If missing branches store file exists
-        if os.path.exists(os.getcwd()+'missing_branches.json'):
+        if os.path.exists(os.getcwd()+'/testdriver/missing_branches.json'):
 
             # Open it and store the current missing branches
             try:
-                f = open(os.getcwd()+'missing_branches.json', 'r')
+                f = open(os.getcwd()+'/testdriver/missing_branches.json', 'r')
                 current_missing_branches:dict = json.loads(f.read())
                 f.close()
             except Exception:
@@ -181,7 +181,7 @@ class DjangoTestDriver:
                 # Assign the leftover branches to the file to be looked over the next coverage test
                 current_missing_branches[file] = leftover_branches
 
-                f = open(os.getcwd()+'missing_branches.json', 'w')
+                f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
                 f.write(json.dumps(current_missing_branches))
                 f.close()
         
@@ -191,7 +191,7 @@ class DjangoTestDriver:
             is_interesting_result = True
 
             # Begin storing the missing branches
-            f = open(os.getcwd()+'missing_branches.json', 'w')
+            f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
             f.write(json.dumps(new_missing_branches))
             f.close()
 
@@ -201,8 +201,8 @@ class DjangoTestDriver:
         return [element for element in list1 if element in list2]
 
     def clean(self):
-        if os.path.exists(os.getcwd()+'missing_branches.json'):
-            os.remove(os.getcwd()+'missing_branches.json')
+        if os.path.exists(os.getcwd()+'/testdriver/missing_branches.json'):
+            os.remove(os.getcwd()+'/testdriver/missing_branches.json')
         else:
             logging.error("The directory is already clean")
 
