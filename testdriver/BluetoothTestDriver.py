@@ -59,9 +59,6 @@ class BluetoothTestDriver(Device.Listener):
         return 0
 
     def on_advertisement(self, advertisement):
-
-        # logging.debug(f'{color("Advertisement", "cyan")} <-- 'f'{color(advertisement.address, "yellow")}')
-        
         # Indicate that an from target advertisement has been received
         self.advertisement = advertisement
         self.got_advertisement = True
@@ -69,11 +66,11 @@ class BluetoothTestDriver(Device.Listener):
     @AsyncRunner.run_in_task()
     # pylint: disable=invalid-overridden-method
     async def on_connection(self, connection):
-        # logging.debug(color(f'[OK] Connected!', 'green'))
+        logging.debug("=====Connected=====")
         self.connection = connection
 
         # Discover all attributes (services, characteristitcs, descriptors, etc)
-        # logging.debug('=== Discovering services')
+        logging.debug('=== Discovering services')
         target = Peer(connection)
         attributes = []
         await target.discover_services()
@@ -86,11 +83,11 @@ class BluetoothTestDriver(Device.Listener):
                 for descriptor in characteristic.descriptors:
                     attributes.append(descriptor)
 
-        # logging.debug(color('[OK] Services discovered', 'green'))
+        logging.debug("=====Services discovered=====")
         show_services(target.services)
         
         # -------- Main interaction with the target here --------
-        # logging.debug('=== Read/Write Attributes (Handles)')
+        logging.debug('=== Read/Write Attributes (Handles)')
         for attribute in attributes:
             await self.run_test(target, attribute, 1, [0x01])
             await self.run_test(target, attribute, 0, [])
@@ -107,14 +104,12 @@ class BluetoothTestDriver(Device.Listener):
         try:
             bytes_to_write = bytearray(bytes)
             await target.write_value(attribute, bytes_to_write, True)
-            # logging.debug(color(f'[OK] WRITE Handle 0x{attribute.handle:04X} --> Bytes={len(bytes_to_write):02d}, Val={hexlify(bytes_to_write).decode()}', 'green'))
             outputs.append(f'[OK] WRITE Handle 0x{attribute.handle:04X} --> Bytes={len(bytes_to_write):02d}, Val={hexlify(bytes_to_write).decode()}')
             return True
         except ProtocolError as error:
-            # logging.debug(color(f'[!]  Cannot write attribute 0x{attribute.handle:04X}:', 'yellow'), error)
             outputs.append(f'[!]  Cannot write attribute 0x{attribute.handle:04X}:')
         except TimeoutError:
-            # logging.debug(color('[X] Write Timeout', 'red'))
+            logging.debug("=====Write Timeout=====")
             outputs.append('[X] Write Timeout')
             
         return outputs
@@ -126,14 +121,11 @@ class BluetoothTestDriver(Device.Listener):
         try: 
             read = await target.read_value(attribute)
             value = read.decode('latin-1')
-            # logging.debug(color(f'[OK] READ  Handle 0x{attribute.handle:04X} <-- Bytes={len(read):02d}, Val={read.hex()}', 'cyan'))
             outputs.append(f'[OK] READ  Handle 0x{attribute.handle:04X} <-- Bytes={len(read):02d}, Val={read.hex()}')
             return value
         except ProtocolError as error:
-            # logging.debug(color(f'[!]  Cannot read attribute 0x{attribute.handle:04X}:', 'yellow'), error)
             outputs.append(f'[!]  Cannot read attribute 0x{attribute.handle:04X}:')
         except TimeoutError:
-            # logging.debug(color('[!] Read Timeout'))
             outputs.append('[!] Read Timeout')
         
         return outputs
@@ -142,13 +134,13 @@ class BluetoothTestDriver(Device.Listener):
 # How oracle will run the test driver first i guess
 async def main():
     if len(sys.argv) != 2:
-        # logging.debug('Usage: run_controller.py <transport-address>')
-        # logging.debug('example: ./run_ble_tester.py tcp-server:0.0.0.0:9000')
+        logging.debug('Usage: run_controller.py <transport-address>')
+        logging.debug('example: ./run_ble_tester.py tcp-server:0.0.0.0:9000')
         return
 
-    # logging.debug('>>> Waiting connection to HCI...')
+    logging.debug('>>> Waiting connection to HCI...')
     async with await open_transport_or_link(sys.argv[1]) as (hci_source, hci_sink):
-        # logging.debug('>>> Connected')
+        logging.debug('>>> Connected')
 
         # Create a local communication channel between multiple controllers
         link = LocalLink()
@@ -172,16 +164,16 @@ async def main():
         await device.power_on()
         await device.start_scanning() # this calls "on_advertisement"
 
-        # logging.debug('Waiting Advertisment from BLE Target')
+        logging.debug('Waiting Advertisment from BLE Target')
         while device.listener.got_advertisement is False:
             await asyncio.sleep(0.5)
         await device.stop_scanning() # Stop scanning for targets
 
-        # logging.debug(color('\n[OK] Got Advertisment from BLE Target!', 'green'))
+        logging.debug('Got Advertisment from BLE Target!')
         target_address = device.listener.advertisement.address
 
         # Start BLE connection here
-        # logging.debug(f'=== Connecting to {target_address}...')
+        logging.debug(f'=== Connecting to {target_address}...')
         await device.connect(target_address) # this calls "on_connection"
         
         # Wait in an infinite loop

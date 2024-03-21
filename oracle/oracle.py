@@ -14,12 +14,12 @@ from testdriver.DjangoTestDriver import DjangoTestDriver
 logger = logging.getLogger(__name__)
 
 class Oracle:
-    def __init__(self, target_app_config):
+    def __init__(self, target_app_config, directories):
         self.target_app_config = target_app_config
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
         if target_app_config["test_driver"] == "DjangoTestDriver":
-            self.test_driver = DjangoTestDriver()
+            self.test_driver = DjangoTestDriver(directories["django_dir"], directories["test_template_file"], directories["test_output_file"], directories["coverage_json_file"], directories["missing_branches_file"])
         else:
             raise RuntimeError("Invalid test driver constant")
         self.coverage = target_app_config.getboolean("coverage")

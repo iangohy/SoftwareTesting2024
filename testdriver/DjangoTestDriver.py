@@ -8,7 +8,7 @@ from smart_fuzzer.smartChunk import SmartChunk
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
-    def __init__(self, django_dir="../../DjangoWebApplication/", test_template_file="./testdriver/template_test.py", test_output_file="tests.py", coverage_json_file="output.json", missing_branches_file="missing_branches.json"):
+    def __init__(self, django_dir, test_template_file, test_output_file, coverage_json_file, missing_branches_file):
         self.server_url = "http://127.0.0.1:8000/"
         self.endpoints = ["api/product/", "datatb/product/add/", "datatb/product/edit/",
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
@@ -86,7 +86,8 @@ class DjangoTestDriver:
         """
         
         text_to_replace = {
-            "ENDPOINT": '/'+endpoint,
+            # endpoint should not need "/" in front
+            "ENDPOINT": endpoint,
             "NAME": input_data['name'],
             "INFO": input_data['info'],
             "PRICE": input_data['price'],
@@ -104,20 +105,20 @@ class DjangoTestDriver:
             data = data.replace('|{}|'.format(var), text_to_replace[var])
 
         # Writes new TestCase for Django
-        f = open(self.test_template_file, 'w')
+        f = open(self.test_output_file, 'w')
         f.write(data)
         f.close()
     
         if coverage:
             # Runs the coverage command on the Django directory and generates a JSON report
-            os.system("coverage3 run --branch --omit='tests.py' {}manage.py test; coverage3 json --pretty-print -o {}".format(self.django_dir, self.coverage_json_file))
+            os.system("coverage3 run --branch --omit='tests.py' {}manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, self.coverage_json_file))
 
             logging.info("Coverage run complete for {}".format(text_to_replace))
 
             logging.info("Is it interesting? {}".format(self.is_interesting()))
         else:
-            # Runs the standard manage.py test command
-            os.system("python3 {}manage.py test".format(self.django_dir))
+            # Runs the standard manage.py test command, look for tests in testdriver folder
+            os.system("python3 {}manage.py test testdriver/".format(self.django_dir))
 
             logging.info("Run complete for {}".format(text_to_replace))
 

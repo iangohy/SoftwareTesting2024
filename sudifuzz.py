@@ -65,7 +65,7 @@ if len(errors) > 0:
     exit()
 
 # == Initialise components
-oracle = Oracle(config["target_application"])
+oracle = Oracle(config["target_application"], config["directories"])
 oracle.start_target_application_threaded()
 time.sleep(5)
 
