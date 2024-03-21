@@ -14,23 +14,23 @@ from testdriver.DjangoTestDriver import DjangoTestDriver
 logger = logging.getLogger(__name__)
 
 class Oracle:
-    def __init__(self, target_app_config):
+    def __init__(self, target_app_config, django_testdriver):
         self.target_app_config = target_app_config
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
         if target_app_config["test_driver"] == "DjangoTestDriver":
-            self.test_driver = DjangoTestDriver()
+            self.test_driver = DjangoTestDriver(django_testdriver["django_dir"])
         else:
             raise RuntimeError("Invalid test driver constant")
         self.coverage = target_app_config.getboolean("coverage")
 
     def start_application_persistent(self):
         while True:
-            self.start_target_application()
             logger.info(">>>>> Target application crashed, restarting...")
+            self.start_target_application()
 
     def start_target_application(self):
-        logger.info(f"Starting target application [{self.target_app_config['name']}]")
+        logger.info(f"\n\n>>>>> Starting target application [{self.target_app_config['name']}]")
         self.run_command_and_log(self.target_app_config["command"], self.target_app_config["log_filepath"])
         logger.info(">>>>> Target application crashed")
 
@@ -125,12 +125,8 @@ if __name__ == "__main__":
     # 4. Oracle will check if program has crashed before returning test result
     # 5. If no crash, return pass and continue. If crash, return fail and restart application
 
-    # oracle = Oracle("target_django_config.ini")
-    # oraacle = Oracle("target_coap_config.ini")
     oracle = Oracle("target_toy_app_config.ini")
-    # oracle.start_target_application()
     oracle.start_target_application_threaded()
-
 
     time.sleep(3)
     failures = 0
