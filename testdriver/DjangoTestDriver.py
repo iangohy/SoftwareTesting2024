@@ -8,22 +8,18 @@ from smart_fuzzer.smartChunk import SmartChunk
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
-    def __init__(self, django_dir, test_template_file, test_output_file, coverage_json_file, missing_branches_file):
+    def __init__(self, django_dir):
         self.server_url = "http://127.0.0.1:8000/"
         self.endpoints = ["api/product/", "datatb/product/add/", "datatb/product/edit/",
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
         self.django_dir = django_dir
-        self.test_template_file = test_template_file
-        self.test_output_file = test_output_file
-        self.coverage_json_file = coverage_json_file
-        self.missing_branches_file = missing_branches_file
 
     # oracle to pass in the amount of test and list of inputs
     def run_test(self, chunk: SmartChunk, coverage: bool):
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
         chunk_endpoint = chunk.chunk_content
 
-        self.send_request_2(
+        self.send_request_with_interesting(
             endpoint=chunk_endpoint,
             input_data={
                 # Default fuzzing implementation
@@ -43,34 +39,33 @@ class DjangoTestDriver:
         Note: Fuzzing formData and header
          - input_data["formData"] and input_data["headers"]
         """
-        
-        url = f"{self.server_url}{self.endpoints[1]}"
-        
+                
         ### example input
-        input_data = {
-            'name': "hello",
-            'info': "bye",
-            'price': 1
+        data_input = {
+            'name': input_data["NAME"],
+            'info': input_data["INFO"],
+            'price': input_data["PRICE"]
         }
         
-        input_data = json.dumps(input_data)
-        method = "get"
+        data_input = json.dumps(data_input)
+        method = input_data["METHOD"]
         headers = {}
         ################
-        
-        if method == "post":
-            response = requests.post(url, data=input_data, headers=headers)
-        elif method == "get":
-            response = requests.get(url, data=input_data, headers=headers)
-        elif method == "delete":
-            response = requests.delete(url, data=input_data, headers=headers)
-        elif method == "put":
-            response = requests.put(url, data=input_data, headers=headers)
-        
-        logging.debug(response.__dict__)
-        return response
+        try:
+            if method == "post":
+                response = requests.post(input_data["ENDPOINT"], data=input_data, headers=headers)
+            elif method == "get":
+                response = requests.get(input_data["ENDPOINT"], data=input_data, headers=headers)
+            elif method == "delete":
+                response = requests.delete(input_data["ENDPOINT"], data=input_data, headers=headers)
+            elif method == "put":
+                response = requests.put(input_data["ENDPOINT"], data=input_data, headers=headers)
+            logging.debug(response.status_code)
+        except Exception as ex:            
+            logging.error(ex)
+            
     
-    def send_request_2(self, 
+    def send_request_with_interesting(self, 
             # Default input config
             endpoint,
             input_data={'name': "hello",'info': "bye",'price': str(1)}, 
@@ -95,17 +90,19 @@ class DjangoTestDriver:
         }
 
         # Reads the current template file
-        logger.debug(self.test_template_file)
-        f = open(self.test_template_file, 'r')
-        data = f.read()
-        f.close()
+        try:
+            f = open(os.getcwd()+"/testdriver/template_test.py", 'r')
+            data = f.read()
+            f.close()
+        except Exception as ex:
+            logging.error(ex)
 
         # Replaces all keywords from text_to_replace
         for var in text_to_replace.keys():
             data = data.replace('|{}|'.format(var), text_to_replace[var])
 
         # Writes new TestCase for Django
-        f = open(self.test_output_file, 'w')
+        f = open(os.getcwd()+"/testdriver/test_case.py", 'w')
         f.write(data)
         f.close()
     
@@ -118,7 +115,8 @@ class DjangoTestDriver:
             logging.info("Is it interesting? {}".format(self.is_interesting()))
         else:
             # Runs the standard manage.py test command, look for tests in testdriver folder
-            os.system("python3 {}manage.py test testdriver/".format(self.django_dir))
+            # os.system("python3 {}manage.py test testdriver/".format(self.django_dir))
+            self.send_request(text_to_replace)
 
             logging.info("Run complete for {}".format(text_to_replace))
 
@@ -133,9 +131,12 @@ class DjangoTestDriver:
     
     def is_interesting(self):
         # Opens the coverage JSON report
-        f = open(self.coverage_json_file, 'r')
-        coverage_data = json.loads(f.read())
-        f.close()
+        try:
+            f = open(os.getcwd()+'output.json', 'r')
+            coverage_data = json.loads(f.read())
+            f.close()
+        except Exception:
+            logging.error("Cannot open output file")
 
         is_interesting_result = False
 
@@ -149,12 +150,15 @@ class DjangoTestDriver:
             new_missing_branches[file] = coverage_data['files'][file]['missing_branches']
 
         # If missing branches store file exists
-        if os.path.exists(self.missing_branches_file):
+        if os.path.exists(os.getcwd()+'missing_branches.json'):
 
             # Open it and store the current missing branches
-            f = open(self.missing_branches_file, 'r')
-            current_missing_branches:dict = json.loads(f.read())
-            f.close()
+            try:
+                f = open(os.getcwd()+'missing_branches.json', 'r')
+                current_missing_branches:dict = json.loads(f.read())
+                f.close()
+            except Exception:
+                logging.error("Cannot open missing branch file")
 
             # For each file index within the missing branch store
             for i in range(len(current_missing_branches.keys())):
@@ -168,10 +172,6 @@ class DjangoTestDriver:
                     list(new_missing_branches.values())[i],
                 )
 
-                # logging.debug(list(current_missing_branches.values())[i])
-                # logging.debug(list(new_missing_branches.values())[i])
-                # logging.debug(leftover_branches)
-
                 # If we find that the leftover branches are fewer than the current missing branches
                 # That means we have fewer missing branches to cover
                 # That is interesting!
@@ -181,7 +181,7 @@ class DjangoTestDriver:
                 # Assign the leftover branches to the file to be looked over the next coverage test
                 current_missing_branches[file] = leftover_branches
 
-                f = open(self.missing_branches_file, 'w')
+                f = open(os.getcwd()+'missing_branches.json', 'w')
                 f.write(json.dumps(current_missing_branches))
                 f.close()
         
@@ -191,7 +191,7 @@ class DjangoTestDriver:
             is_interesting_result = True
 
             # Begin storing the missing branches
-            f = open(self.missing_branches_file, 'w')
+            f = open(os.getcwd()+'missing_branches.json', 'w')
             f.write(json.dumps(new_missing_branches))
             f.close()
 
@@ -201,8 +201,8 @@ class DjangoTestDriver:
         return [element for element in list1 if element in list2]
 
     def clean(self):
-        if os.path.exists(self.missing_branches_file):
-            os.remove(self.missing_branches_file)
+        if os.path.exists(os.getcwd()+'missing_branches.json'):
+            os.remove(os.getcwd()+'missing_branches.json')
         else:
             logging.error("The directory is already clean")
 
@@ -211,19 +211,11 @@ if __name__ == "__main__":
     
     # Configuration
     DJANGO_DIRECTORY = '../../DjangoWebApplication/'
-    TEST_TEMPLATE_FILE = 'template_test.py'
-    TEST_OUTPUT_FILE = 'tests.py'
-    COVERAGE_JSON_FILE = 'output.json'
-    MISSING_BRANCHES_FILE = 'missing_branches.json'
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.DEBUG) 
 
     driver = DjangoTestDriver(
-        django_dir=DJANGO_DIRECTORY,
-        test_template_file=TEST_TEMPLATE_FILE,
-        test_output_file=TEST_OUTPUT_FILE,
-        coverage_json_file=COVERAGE_JSON_FILE,
-        missing_branches_file=MISSING_BRANCHES_FILE
+        django_dir=DJANGO_DIRECTORY
     )
     driver.run_test()

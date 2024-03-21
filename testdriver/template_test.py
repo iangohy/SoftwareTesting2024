@@ -10,8 +10,9 @@ logging.basicConfig(level=logging.INFO)
 class CoverageTests(TestCase):
     def test_client(self):
         # endpoint = "/api/product/add/" - should be just a uri
-        endpoint = "/http://127.0.0.1:8000/api/delete/"
-        method = "post"
+        
+        endpoint = "|ENDPOINT|"
+        method = "|METHOD|"
         
         # form_data = {
         #     'name': "sdsds",
@@ -20,9 +21,9 @@ class CoverageTests(TestCase):
         # }
         
         form_data = {
-            'name': "RDnJaCwLQA",
-            'info': "HGYqRKEJJq",
-            'price': "67" # should be integer
+            'name': "|NAME|",
+            'info': "|INFO|",
+            'price': "|PRICE|" # should be integer
         }
         
         logging.info("========Starting request========")
@@ -39,6 +40,3 @@ class CoverageTests(TestCase):
             response = self.client.get(endpoint)
         
         logging.info("Response \t%s",response.status_code)
-        
-        # self.assertEqual(response.status_code, 200)
-        # self.assertNotIn(b'ValueError', response)
