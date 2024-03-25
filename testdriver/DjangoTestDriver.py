@@ -63,7 +63,7 @@ class DjangoTestDriver:
             logging.debug(response.status_code)
             return {"status_code": response.status_code}
         except Exception as ex:            
-            return logging.error(ex)
+            logging.error(ex)
             
     
     def send_request_with_interesting(self, 
