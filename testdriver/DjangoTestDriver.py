@@ -19,7 +19,7 @@ class DjangoTestDriver:
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
         chunk_endpoint = chunk.chunk_content
 
-        self.send_request_with_interesting(
+        return self.send_request_with_interesting(
             endpoint=chunk_endpoint,
             input_data={
                 # Default fuzzing implementation
@@ -61,8 +61,9 @@ class DjangoTestDriver:
             elif method == "put":
                 response = requests.put(input_data["ENDPOINT"], data=input_data, headers=headers)
             logging.debug(response.status_code)
+            return {"status_code": response.status_code}
         except Exception as ex:            
-            logging.error(ex)
+            return logging.error(ex)
             
     
     def send_request_with_interesting(self, 
@@ -113,12 +114,17 @@ class DjangoTestDriver:
             logging.info("Coverage run complete for {}".format(text_to_replace))
 
             logging.info("Is it interesting? {}".format(self.is_interesting()))
+            
+            response = None
+            with open("fuzz.log") as f:
+                response = {"status_code": f.readline()}
+            return response
         else:
             # Runs the standard manage.py test command, look for tests in testdriver folder
             # os.system("python3 {}manage.py test testdriver/".format(self.django_dir))
-            self.send_request(text_to_replace)
-
             logging.info("Run complete for {}".format(text_to_replace))
+            return self.send_request(text_to_replace)
+
 
     def analyze_results(self, response):
         # Analyze the results of the server response

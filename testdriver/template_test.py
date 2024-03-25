@@ -39,4 +39,13 @@ class CoverageTests(TestCase):
         else:
             response = self.client.get(endpoint)
         
-        logging.info("Response \t%s",response.status_code)
+        if response:
+            with open("fuzz.log", "w") as f:
+                f.write(str(response.status_code))
+                
+        else:
+            with open("fuzz.log", "w") as f:
+                f.write("No connection adapters")
+                
+        logging.info("========Ending request========")
+        # logging.info("Response \t%s",response.status_code)
