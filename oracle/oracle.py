@@ -100,7 +100,15 @@ class Oracle:
     # Runs the test and returns True if successful and False if crash
     def run_test(self, chunk: SmartChunk):
         """Sends test input SmartChunk to test driver. Returns failed, isInteresting, additional_info_dict"""
-        self.test_driver.run_test(chunk, self.coverage)
+        response = self.test_driver.run_test(chunk, self.coverage)
+        if response:
+            logger.info("=======================")
+            logger.info("status_code: " + str(response["status_code"]))
+            logger.info("=======================")
+        else:
+            logger.info("=======================")
+            logger.info("No connection adapters")
+            logger.info("=======================")
         return (False, True, {"remarks": "some gud stuff"})
     
         # Check if crash
