@@ -10,6 +10,7 @@ import requests
 from oracle.utils import non_block_read
 from smart_fuzzer.smartChunk import SmartChunk
 from testdriver.DjangoTestDriver import DjangoTestDriver
+from testdriver.CoapTestDriver import CoapTestDriver
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ class Oracle:
         self.exit_event = threading.Event()
         if target_app_config["test_driver"] == "DjangoTestDriver":
             self.test_driver = DjangoTestDriver(django_testdriver["django_dir"])
+        elif target_app_config["test_driver"] == "CoapTestDriver":
+            self.test_driver = CoapTestDriver(django_testdriver["coap_dir"])
         else:
             raise RuntimeError("Invalid test driver constant")
         self.coverage = target_app_config.getboolean("coverage")

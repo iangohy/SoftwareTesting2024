@@ -1,4 +1,4 @@
-import random, logging, os, json, asyncio, subprocess
+import random, logging, os, json, asyncio
 from aiocoap import Context, Message, Code
 
 SERVER_URL = 'coap://127.0.0.1:5683'
@@ -7,7 +7,7 @@ COVERAGE_JSON_FILE = 'output.json'
 MISSING_LINES_FILE = 'missing_lines.json'
 
 async def send_request_with_coverage(endpoint, method, input:str):
-    coverage_run = subprocess.Popen("coverage2 run --branch {}coapserver.py 127.0.0.1 -p 5683".format(COAPTHON_DIRECTORY), shell=True)
+    coverage_run = await asyncio.create_subprocess_shell("coverage2 run --branch {}coapserver.py 127.0.0.1 -p 5683".format(COAPTHON_DIRECTORY))
 
     url = "{}{}".format(SERVER_URL, endpoint)
     
@@ -30,7 +30,8 @@ async def send_request_with_coverage(endpoint, method, input:str):
 
     coverage_run.terminate()
 
-    json_report = subprocess.Popen("coverage2 json --pretty-print -o {}".format(COVERAGE_JSON_FILE), shell=True)
+    json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(COVERAGE_JSON_FILE))
+    await json_report.wait()
 
     logging.info("Coverage run complete for {}".format(input))
 
@@ -105,12 +106,15 @@ def clean():
     else:
         logging.error("The directory is already clean")
 
-ENDPOINT = '/separate'
+ENDPOINT = '/basic'
 METHOD = 'post'
 INPUT = "qwiojoidjqwaioji!"
 
-if __name__ == "__main__":
+async def main():
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.DEBUG)
-    asyncio.run(send_request_with_coverage(ENDPOINT, METHOD, INPUT))
+    await send_request_with_coverage(ENDPOINT, METHOD, INPUT)
     logging.info("Is it interesting? {}".format(is_interesting()))
+
+if __name__ == "__main__":
+    asyncio.run(main())
