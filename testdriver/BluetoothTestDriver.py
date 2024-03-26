@@ -3,52 +3,81 @@
 # Imports
 # -----------------------------------------------------------------------------
 import logging
-import asyncio
-import sys
-import os
-from binascii import hexlify
-
-
-from bumble.device import Device, Peer
-from bumble.host import Host
-from bumble.gatt import show_services
-from bumble.core import ProtocolError
-from bumble.controller import Controller
-from bumble.link import LocalLink
-from bumble.transport import open_transport_or_link
-from bumble.utils import AsyncRunner
-from bumble.colors import color
+from subprocess import Popen, PIPE, STDOUT
 import logging
+import shutil
 
-class BluetoothTestDriver(Device.Listener):
-    def __init__(self):
-        self.server_url = "http://127.0.0.1:9000/"
-        self.got_advertisement = False
-        self.advertisement = None
-        self.connection = None
-    
-    # oracle to pass in
-    async def run_test(self, target, attribute, type, bytes):
-        """
-        used by oracle 
-        """
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
-        response = None
-                
-        # dummy
-        if type:
-            # example write
-            response = await self.write_target(target, attribute, bytes)
-        else:
-            # example read
-            response = await self.read_target(target, attribute)
+class BluetoothTestDriver():
+    def __init__(self, bluetooth_dir):
+        self.bluetooth_dir = bluetooth_dir
         
-        logging.debug("======RESPONSE======")
-        logging.debug(response)
-        logging.debug("======RESPONSE======")
-        self.analyze_results(response)
-            
+    def move_flash_bin(self):
+        try:
+            shutil.copyfile("./flash.bin", self.bluetooth_dir+"flash.bin")
+        except FileNotFoundError:
+            logging.info("File not found.")
+        except PermissionError:
+            logging.info("Permission denied.")
+        except Exception as e:
+            logging.info(f"An error occurred: {e}")
+        
+    def run_coverage(self):
+        command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}lcov.info -q --rc lcov_branch_coverage=1"
+        Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+        logging.info('[OK] Coverage Done')
+        command = f"lcov --rc lcov_branch_coverage=1 --summary {self.bluetooth_dir}lcov.info"
+        process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+        while True:
+            line = process.stdout.readline()
+            if line:
+                logger.info(f"OUTPUT: {line}")
+            if process.poll() is not None:
+                break 
+        logging.info('[OK] Summary Done')
+    
+    def generate_code_with_test(self, input):
+        with open('bluetooth_template.py', 'r') as file:
+            filedata = file.read()
 
+        # Replace the target string
+        filedata = filedata.replace('|replace_byte|', input)
+        filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
+
+        # Write the file out again
+        with open('bluetooth_fuzz.py', 'w') as file:
+            file.write(filedata)
+    
+    def run_test(self, inputs, coverage: bool):        
+        # Generate python file with inputs
+        self.generate_code_with_test(inputs)
+        
+        command = "python3 bluetooth_fuzz.py"
+        with open("bluetooth_fuzz.log", "a") as logfile:
+            try:
+                process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+                self.process_stdout(process, logfile)
+            except Exception as e:
+                logger.info(f"ERROR: {e}")
+        if coverage:
+            self.run_coverage()
+    
+    def process_stdout(self, process: Popen, logfile):
+        logger.info("Handling target application stdout and stderr")
+        while True:
+            line = process.stdout.readline()
+            if line:
+                logger.info(f"OUTPUT: {line}")
+                logfile.write(line)
+            if process.poll() is not None:
+                break 
+        
+        # move flash.bin to bluetooth folder
+        self.move_flash_bin()
+        logger.info("===END===")
+    
     def analyze_results(self, response):
         # Analyze the results of the server response
         pass
@@ -57,135 +86,13 @@ class BluetoothTestDriver(Device.Listener):
         # interpret ASCII to fit to request
         
         return 0
-
-    def on_advertisement(self, advertisement):
-        # Indicate that an from target advertisement has been received
-        self.advertisement = advertisement
-        self.got_advertisement = True
-
-    @AsyncRunner.run_in_task()
-    # pylint: disable=invalid-overridden-method
-    async def on_connection(self, connection):
-        logging.debug("=====Connected=====")
-        self.connection = connection
-
-        # Discover all attributes (services, characteristitcs, descriptors, etc)
-        logging.debug('=== Discovering services')
-        target = Peer(connection)
-        attributes = []
-        await target.discover_services()
-        for service in target.services:
-            attributes.append(service)
-            await service.discover_characteristics()
-            for characteristic in service.characteristics:
-                attributes.append(characteristic)
-                await characteristic.discover_descriptors()
-                for descriptor in characteristic.descriptors:
-                    attributes.append(descriptor)
-
-        logging.debug("=====Services discovered=====")
-        show_services(target.services)
-        
-        # -------- Main interaction with the target here --------
-        logging.debug('=== Read/Write Attributes (Handles)')
-        for attribute in attributes:
-            await self.run_test(target, attribute, 1, [0x01])
-            await self.run_test(target, attribute, 0, [])
-        
-        logging.debug('---------------------------------------------------------------')
-        logging.debug('[OK] Communication Finished')
-        logging.debug('---------------------------------------------------------------')
-        # ---------------------------------------------------
-        
     
-    async def write_target(self, target, attribute, bytes):
-        # Write data to bluetooth target
-        outputs = []
-        try:
-            bytes_to_write = bytearray(bytes)
-            await target.write_value(attribute, bytes_to_write, True)
-            outputs.append(f'[OK] WRITE Handle 0x{attribute.handle:04X} --> Bytes={len(bytes_to_write):02d}, Val={hexlify(bytes_to_write).decode()}')
-            return True
-        except ProtocolError as error:
-            outputs.append(f'[!]  Cannot write attribute 0x{attribute.handle:04X}:')
-        except TimeoutError:
-            logging.debug("=====Write Timeout=====")
-            outputs.append('[X] Write Timeout')
-            
-        return outputs
-
-
-    async def read_target(self, target, attribute):
-        # Read data from bluetooth target
-        outputs = []
-        try: 
-            read = await target.read_value(attribute)
-            value = read.decode('latin-1')
-            outputs.append(f'[OK] READ  Handle 0x{attribute.handle:04X} <-- Bytes={len(read):02d}, Val={read.hex()}')
-            return value
-        except ProtocolError as error:
-            outputs.append(f'[!]  Cannot read attribute 0x{attribute.handle:04X}:')
-        except TimeoutError:
-            outputs.append('[!] Read Timeout')
-        
-        return outputs
-
-# -----------------------------------------------------------------------------
-# How oracle will run the test driver first i guess
-async def main():
-    if len(sys.argv) != 2:
-        logging.debug('Usage: run_controller.py <transport-address>')
-        logging.debug('example: ./run_ble_tester.py tcp-server:0.0.0.0:9000')
-        return
-
-    logging.debug('>>> Waiting connection to HCI...')
-    async with await open_transport_or_link(sys.argv[1]) as (hci_source, hci_sink):
-        logging.debug('>>> Connected')
-
-        # Create a local communication channel between multiple controllers
-        link = LocalLink()
-
-        # Create a first controller for connection with host interface (Zephyr)
-        zephyr_controller = Controller('Zephyr', host_source=hci_source,
-                                 host_sink=hci_sink,
-                                 link=link)
-
-
-        # Create our own device (tester central) to manage the host BLE stack
-        device = Device.from_config_file('../../SoftwareTestingRepo/bluetooth/tester_config.json')
-        # Create a host for the second controller
-        device.host = Host() 
-        # Create a second controller for connection with this test driver (Bumble)
-        device.host.controller = Controller('Fuzzer', link=link)
-        # Connect class to receive events during communication with target
-        device.listener = BluetoothTestDriver()
-        
-        # Start BLE scanning here
-        await device.power_on()
-        await device.start_scanning() # this calls "on_advertisement"
-
-        logging.debug('Waiting Advertisment from BLE Target')
-        while device.listener.got_advertisement is False:
-            await asyncio.sleep(0.5)
-        await device.stop_scanning() # Stop scanning for targets
-
-        logging.debug('Got Advertisment from BLE Target!')
-        target_address = device.listener.advertisement.address
-
-        # Start BLE connection here
-        logging.debug(f'=== Connecting to {target_address}...')
-        await device.connect(target_address) # this calls "on_connection"
-        
-        # Wait in an infinite loop
-        await hci_source.wait_for_termination()
-
-
-
-
 # Usage
-if __name__ == "__main__":     
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.DEBUG)
-    # -----------------------------------------------------------------------------
-    logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'INFO').upper())
-    asyncio.run(main())
+if __name__ == "__main__": 
+        
+    inputs = ["0x02"]
+    # Example
+    for i in range(len(inputs)):
+        driver = BluetoothTestDriver("../SoftwareTestingRepo/bluetooth/")
+        driver.run_test(inputs[i], True)
+        
