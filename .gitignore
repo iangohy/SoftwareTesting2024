@@ -1,3 +1,5 @@
+*/test_case.py
+
 # Configuration files
 *.ini
 !sudifuzz_config_example.ini
