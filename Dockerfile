@@ -1,0 +1,42 @@
+FROM --platform=amd64 python:3.11-bullseye
+
+# Install required packages
+RUN apt update
+RUN apt install -y python2 gdb gcc-multilib gcovr lcov
+RUN rm -rf /var/lib/apt/lists/*
+RUN curl "https://bootstrap.pypa.io/pip/2.7/get-pip.py" -o "get-pip.py" && python2 get-pip.py && rm get-pip.py
+RUN python3 -m pip install --upgrade pip
+
+# Django
+RUN curl -o django.tar.gz -L "https://www.dropbox.com/scl/fi/tza2fawtt89a17qv2mrop/DjangoWebApplication.tar.gz?rlkey=38bmjle1992nge8d01acgw9sd&dl=1"
+RUN tar -xzvf django.tar.gz && rm django.tar.gz
+WORKDIR /DjangoWebApplication
+RUN pip3 install -r requirements.txt
+
+# CoAP
+WORKDIR /
+RUN curl -o coap.zip -L "https://www.dropbox.com/scl/fi/oscwf7knoo6ev8azh1y79/CoAPthon.zip?rlkey=4jbijamzeu80d4fq360e3d359&dl=1"
+RUN unzip coap.zip && rm coap.zip
+WORKDIR /CoAPthon
+RUN python2 setup.py sdist
+RUN pip install dist/CoAPthon-4.0.2.tar.gz -r requirements.txt
+
+# BLE
+WORKDIR /
+RUN curl -o ble.tar.gz -L "https://www.dropbox.com/scl/fi/8fdbt7km4jyslwpvt7ar4/ble-fuzzing-project.tar.gz?rlkey=c1l7rclyk3q89zskmhwis5m7a&dl=1"
+RUN mkdir ble && tar -xzvf ble.tar.gz -C ble && rm ble.tar.gz
+WORKDIR /ble
+ENV GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
+ENV GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
+RUN pip3 install "./bumble"
+
+# Sudifuzz
+WORKDIR /sudifuzz
+COPY requirements.txt .
+COPY requirements_python2.txt .
+RUN pip3 install -r requirements.txt
+RUN pip2 install -r requirements_python2.txt
+COPY . .
+
+ENTRYPOINT ["python3", "sudifuzz.py", "--config"]
+CMD ["sudifuzz_config_example.ini"]

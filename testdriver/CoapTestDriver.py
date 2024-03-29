@@ -68,7 +68,7 @@ class CoapTestDriver:
             method_code = Code.DELETE
 
         if coverage:
-            coverage_run = await asyncio.create_subprocess_shell("coverage2 run --branch {}coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
+            coverage_run = await asyncio.create_subprocess_shell("coverage2 run --branch {}/coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
 
             request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
             logging.debug(request.token)

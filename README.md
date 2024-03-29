@@ -2,7 +2,18 @@
 
 # 50.053 Software Testing and Verification
 
-## Running
+## Running (Docker)
+With docker compose,
+```
+docker compose up --build
+```
+
+Without docker compose,
+```
+docker build -t sudifuzz .
+docker run -v ./logs/:/sudifuzz/logs sudifuzz
+```
+## Running (without Docker)
 ```
 python sudifuzz.py --config sudifuzz_config_example.ini
 ```

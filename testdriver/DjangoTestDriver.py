@@ -3,8 +3,11 @@ import logging
 import json
 import os
 import random
+from subprocess import Popen, PIPE, STDOUT
 
 from smart_fuzzer.smartChunk import SmartChunk
+from testdriver.custom_exceptions import TestDriverCrashDetected
+from testdriver.utils import check_for_blacklist_phrase
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
@@ -14,11 +17,12 @@ class DjangoTestDriver:
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
         self.django_dir = django_dir
 
-    # oracle to pass in the amount of test and list of inputs
+    # Oracle will pass in chunk as test input
     def run_test(self, chunk: SmartChunk, coverage: bool):
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
         chunk_endpoint = chunk.chunk_content
 
+        # TODO: update input data with actual data from chunk
         return self.send_request_with_interesting(
             endpoint=chunk_endpoint,
             input_data={
@@ -109,7 +113,15 @@ class DjangoTestDriver:
     
         if coverage:
             # Runs the coverage command on the Django directory and generates a JSON report
-            os.system("coverage3 run --branch --omit='tests.py' {}manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, os.getcwd()+'/testdriver/output.json'))
+            command = "coverage3 run --branch --omit='tests.py' {}/manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, os.getcwd()+'/testdriver/output.json')
+            process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+            try:
+                self.process_stdout(process, None)
+            except TestDriverCrashDetected as e:
+                logger.exception(e)
+                logger.error(f"Test driver crashed while running test case: {input_data}")
+                # TODO: determine return values on crash
+                return
 
             logging.info("Coverage run complete for {}".format(text_to_replace))
 
@@ -211,12 +223,38 @@ class DjangoTestDriver:
             os.remove(os.getcwd()+'/testdriver/missing_branches.json')
         else:
             logging.error("The directory is already clean")
+                
+    def process_stdout(self, process: Popen, logfile):
+        logger.info("Handling target application stdout and stderr")
+        # Case ignored
+        blacklist = ["segmentation fault", "core dumped"]
+        logger.info(f"Blacklist is: {blacklist}")
+
+        while True:
+            # if self.exit_event.is_set():
+            #     raise KeyboardInterrupt()
+            os.set_blocking(process.stdout.fileno(), False)
+            # line = non_block_read(process.stdout)
+            line = process.stdout.readline()
+            if line:
+                logger.info(f"OUTPUT: {line}")
+                if logfile:
+                    logfile.write(line)
+                check_for_blacklist_phrase(line, blacklist)
+            if process.poll() is not None:
+                break
+
+        status = process.poll()
+        if status != 0:
+            raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}")
+        else:
+            logger.debug("Process exited with status 0")
 
 # Usage
 if __name__ == "__main__":  
     
     # Configuration
-    DJANGO_DIRECTORY = '../../DjangoWebApplication/'
+    DJANGO_DIRECTORY = '../DjangoWebApplication/'
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.DEBUG) 
@@ -224,4 +262,17 @@ if __name__ == "__main__":
     driver = DjangoTestDriver(
         django_dir=DJANGO_DIRECTORY
     )
-    driver.run_test()
+    # driver.run_test()
+
+    # Crashing test
+    driver.send_request_with_interesting(
+        endpoint="/datatb/product/add/",
+        input_data={
+            # Default fuzzing implementation
+            'name': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
+            'info': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=2000)),
+            'price': str(random.randint(1, 100)),
+        },
+        method='post',
+        coverage=True
+    )

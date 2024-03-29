@@ -5,7 +5,6 @@ import os
 import signal
 from oracle.custom_exceptions import OracleCrashDetected
 import threading
-import requests
 
 from oracle.utils import non_block_read
 from smart_fuzzer.smartChunk import SmartChunk
@@ -19,13 +18,17 @@ class Oracle:
         self.target_app_config = target_app_config
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
-        if target_app_config["test_driver"] == "DjangoTestDriver":
+        self.coverage = target_app_config.getboolean("coverage")
+        self.logfile = f'{self.target_app_config["log_folderpath"]}/{self.target_app_config["name"]}_{int(time.time())}.log'
+
+
+        config_testdriver = target_app_config.get("test_driver")
+        if config_testdriver == "DjangoTestDriver":
             self.test_driver = DjangoTestDriver(django_testdriver["django_dir"])
-        elif target_app_config["test_driver"] == "CoapTestDriver":
+        elif config_testdriver == "CoapTestDriver":
             self.test_driver = CoapTestDriver(django_testdriver["coap_dir"])
         else:
-            raise RuntimeError("Invalid test driver constant")
-        self.coverage = target_app_config.getboolean("coverage")
+            raise RuntimeError(f"Invalid test driver constant [{config_testdriver}]")
 
     def start_application_persistent(self):
         while True:
@@ -34,7 +37,7 @@ class Oracle:
 
     def start_target_application(self):
         logger.info(f"\n\n>>>>> Starting target application [{self.target_app_config['name']}]")
-        self.run_command_and_log(self.target_app_config["command"], self.target_app_config["log_filepath"])
+        self.run_command_and_log(self.target_app_config["command"], self.logfile)
         logger.info(">>>>> Target application crashed")
 
     def start_target_application_threaded(self):
