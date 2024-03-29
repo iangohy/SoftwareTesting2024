@@ -1,20 +1,43 @@
-# from oracle.oracle import Oracle
-# import time
 import argparse
 import logging
 import configparser
 import time
+from pathlib import Path
 
 from oracle.oracle import Oracle
 from greybox_fuzzer.main_fuzzer import MainFuzzer
 from smart_fuzzer.input_models.djangoDict import DjangoDict
 from smart_fuzzer.smartChunk import SmartChunk
 
+REQUIRED_KEYS = {
+    "target_application": ["name", "command", "log_folderpath", "test_driver", "coverage"],
+    "main_fuzzer": ["max_fuzz_cycles", "mode"]
+}
+
 logger = logging.getLogger(__name__)
 start_time = time.time()
 
+parser = argparse.ArgumentParser(
+            prog='python3 sudifuzz.py',
+            description='Fuzzing program for CoAP, Django and BLE')
+parser.add_argument('--config', dest='config', action='store',
+            required=True, help='filepath of configuration .ini file')
+
+args = parser.parse_args()
+
+# Read configuration file
+# Defaults for keys are also set here (if required)
+config = configparser.ConfigParser()
+config.read(args.config)
+
+# == Create log folder if doesn't exist
+log_folderpath = config.get("target_application", "log_folderpath")
+log_filepath = f"{log_folderpath}/sudifuzz_{int(time.time())}.log"
+Path(config["target_application"]["log_folderpath"]).mkdir(parents=True, exist_ok=True)
+
+# === Set up logging
 streamhandler = logging.StreamHandler()
-filehandler = logging.FileHandler("sudifuzz.log")
+filehandler = logging.FileHandler(log_filepath)
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s", 
     level=logging.DEBUG,
@@ -24,31 +47,16 @@ logging.basicConfig(
     ]
 )
 
-parser = argparse.ArgumentParser(
-            prog='python3 sudifuzz.py',
-            description='Fuzzing program for CoAP, Django and BLE')
-parser.add_argument('--config', dest='config', action='store',
-            required=True, help='filepath of configuration .ini file')
-
-args = parser.parse_args()
 logger.info("================")
 logger.info("Sudifuzzzzzzzzz")
 logger.info("================")
-# logger.info(f"Configuration Filepath: {args.config}")
 
-# Verify configuration file
-config = configparser.ConfigParser()
-config.read(args.config)
-
-REQUIRED_KEYS = {
-    "target_application": ["name", "command", "log_filepath"]
-}
 errors = []
 # Find section and validate keys
 for section, keys in REQUIRED_KEYS.items():
-    # logger.debug(f"Verifying section [{section}]")
+    logger.debug(f"Verifying section [{section}]")
     for key in keys:
-        # logger.debug(f"Verifying key {key}")
+        logger.debug(f"Verifying key {key}")
         try:
             config_value = config[section][key]
             if config_value is None:
@@ -65,20 +73,27 @@ if len(errors) > 0:
 
 # == Initialise components
 oracle = Oracle(config["target_application"], config["django_testdriver"])
-oracle.start_target_application_threaded()
-time.sleep(1)
+# TODO: Determine if we still need oracle initiated target application
+# oracle.start_target_application_threaded()
+# time.sleep(1)
 
 # == Chunk Preprocessing
-# - Configuration file (general): This configuration file is for the entire sudifuzz program
-# - Chunks: XML structure, seed input..., filepaths should be defined in configuration file
 # Validate filepaths and generate chunks
 seed_chunk = SmartChunk(DjangoDict(), "http://127.0.0.1:8000/api/product/delete/")
 seed_chunk.get_chunks("http://127.0.0.1:8000/api/product/delete/")
 seedQ = [seed_chunk]
 
 # == Main Fuzzer
+max_fuzz_cycles = config.getint("main_fuzzer", "max_fuzz_cycles")
+mode = config.get("main_fuzzer", "mode")
+logger.debug(f"max_fuzz_cycles={max_fuzz_cycles}, mode={mode}")
 try:
-    main_fuzzer = MainFuzzer(seedQ, oracle)
+    main_fuzzer = MainFuzzer(
+        seedQ,
+        oracle,
+        max_fuzz_cycles=max_fuzz_cycles,
+        mode=mode
+    )
     seedQ, failureQ = main_fuzzer.fuzz()
 except Exception as e:
     logger.exception(e)
