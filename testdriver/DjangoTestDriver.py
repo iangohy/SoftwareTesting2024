@@ -244,8 +244,11 @@ class DjangoTestDriver:
             if process.poll() is not None:
                 break
 
-        # Will only reach here if crash
-        raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}")
+        status = process.poll()
+        if status != 0:
+            raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}")
+        else:
+            logger.debug("Process exited with status 0")
 
 # Usage
 if __name__ == "__main__":  
