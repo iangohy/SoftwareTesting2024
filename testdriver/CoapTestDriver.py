@@ -20,8 +20,8 @@ class CoapTestDriver:
             - response = await self.send_request(list_of_inputs[i])
         """
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
-        # chunk_endpoint = chunk.chunk_content
-        chunk_endpoint = self.endpoints[0]
+        chunk_endpoint = chunk.chunk_content
+        # chunk_endpoint = self.endpoints[0]
         
         self.send_request_with_interesting(
             endpoint=chunk_endpoint,
