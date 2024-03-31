@@ -10,12 +10,13 @@ import math
 logger = logging.getLogger(__name__)
 
 class MainFuzzer:
-    def __init__(self, seedQ: List[Any], oracle: Oracle, max_fuzz_cycles=10, mode='ascii'):
+    def __init__(self, seedQ: List[Any], oracle: Oracle, max_fuzz_cycles=10, energy_strat='state_hash'):
+        # state_hash or distance, first is hash, second is a number
         self.seedQ = seedQ
         self.failureQ = []
         self.oracle = oracle
         self.max_fuzz_cycles = max_fuzz_cycles
-        self.mutator = Mutator(None, mode=mode) # set the mode here, seed here is for random
+        self.mutator = Mutator(None, mode='ascii') # set the mode here, seed here is for random
         self.seed_idx = 0
         self.first_flag = True # flag to check if first run of fuzzer
         self.prev_energy = 100
@@ -109,6 +110,7 @@ class Seed:
     def __init__(self, data: str) -> None:
         """Initialize from seed data"""
         self.data = data
+        self.chunk = SmartChunk()
         
         # TODO: adjust this based on fuzzer chunking etc
         self.energy = 0.0
