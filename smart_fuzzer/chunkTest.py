@@ -1,4 +1,3 @@
-from smartChunk import SmartChunk
 from schunk import SChunk
 from chunkTreeGenerator import ChunkTreeGenerator
 
