@@ -56,7 +56,8 @@ class CoapTestDriver:
             endpoint, 
             method = "post", 
             input_data:str = 'Hello world!',
-            coverage=False
+            coverage=False,
+            mode='hash'
         ):
         url = "{}{}".format(self.server_url, endpoint)
         
@@ -87,7 +88,7 @@ class CoapTestDriver:
 
             logging.info("Coverage run complete for {}".format(input_data))
 
-            logging.info("Is it interesting? {}".format(self.is_interesting()))
+            logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
         else:
             # normal_run = await asyncio.create_subprocess_shell("python3 {}coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
             request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
@@ -123,7 +124,7 @@ class CoapTestDriver:
             if coverage_data['files'][file]['summary']['missing_lines'] <= 0:
                 continue
             new_missing_lines[file] = coverage_data['files'][file]['missing_lines']
-            totalno_missing_lines += coverage_data['files'][file]['summary']['missing_branches']
+            totalno_missing_lines += coverage_data['files'][file]['summary']['missing_lines']
 
         # If missing lines store file exists
         if os.path.exists(os.getcwd()+'/testdriver/missing_lines.json'):
@@ -164,7 +165,7 @@ class CoapTestDriver:
                     f.write(json.dumps(current_missing_lines))
                     f.close()
             elif mode == 'hash' and 'path_history' in current_missing_lines:
-                # Get a Path ID as a hashed version of the missing branches object
+                # Get a Path ID as a hashed version of the missing lines object
                 new_path_ID = hashlib.md5( json.dumps(new_missing_lines).encode() ).hexdigest()
 
                 # Fetch the path history as a list of hashed path IDs
@@ -176,7 +177,7 @@ class CoapTestDriver:
                     path_history.append(new_path_ID)
 
                     # Update the output JSON file
-                    f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
+                    f = open(os.getcwd()+'/testdriver/missing_lines.json', 'w')
                     f.write( json.dumps({
                         'path_history': path_history
                     }) )
@@ -199,7 +200,7 @@ class CoapTestDriver:
                 f.write( json.dumps(new_missing_lines) )
                 return_object = { 'dist': totalno_missing_lines }
             else:
-                # Get a Path ID as a hashed version of the missing branches object
+                # Get a Path ID as a hashed version of the missing lines object
                 path_ID = hashlib.md5( json.dumps(new_missing_lines).encode() ).hexdigest()
 
                 # Start saving a history of paths checked
