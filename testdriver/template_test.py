@@ -11,7 +11,7 @@ class CoverageTests(TestCase):
     def test_client(self):
         # endpoint = "/api/product/add/" - should be just a uri
         
-        endpoint = "|ENDPOINT|"
+        endpoint = "/|ENDPOINT|"
         method = "|METHOD|"
         
         # form_data = {

@@ -3,6 +3,7 @@ import logging
 import json
 import os
 import random
+import hashlib
 from subprocess import Popen, PIPE, STDOUT
 
 from smart_fuzzer.smartChunk import SmartChunk
@@ -18,9 +19,10 @@ class DjangoTestDriver:
         self.django_dir = django_dir
 
     # Oracle will pass in chunk as test input
-    def run_test(self, chunk: SmartChunk, coverage: bool):
+    def run_test(self, chunk: SmartChunk, coverage: bool = False, mode: str = 'distance'):
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
         chunk_endpoint = chunk.chunk_content
+        # chunk_endpoint = self.endpoints[1]
 
         # TODO: update input data with actual data from chunk
         return self.send_request_with_interesting(
@@ -32,7 +34,8 @@ class DjangoTestDriver:
                 'price': str(random.randint(1, 100)),
             },
             method='post',
-            coverage=coverage
+            coverage=coverage,
+            mode=mode
         )
     
     def send_request(self, input_data):
@@ -75,7 +78,8 @@ class DjangoTestDriver:
             endpoint,
             input_data={'name': "hello",'info': "bye",'price': str(1)}, 
             method="get", # post | get | put | delete | patch
-            coverage=False
+            coverage=False,
+            mode="hash"
         ):
         """
         Call interpret function to get readable inputs
@@ -125,7 +129,7 @@ class DjangoTestDriver:
 
             logging.info("Coverage run complete for {}".format(text_to_replace))
 
-            logging.info("Is it interesting? {}".format(self.is_interesting()))
+            logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
             
             response = None
             with open("fuzz.log") as f:
@@ -147,7 +151,7 @@ class DjangoTestDriver:
         
         return 0
     
-    def is_interesting(self):
+    def is_interesting(self, mode:str = 'hash'):
         # Opens the coverage JSON report
         try:
             f = open(os.getcwd()+'/testdriver/output.json', 'r')
@@ -157,15 +161,21 @@ class DjangoTestDriver:
             logging.error("Cannot open output file")
 
         is_interesting_result = False
-
+        return_object = {}
+        
         # Store the new missing branches from the report
         new_missing_branches = {}
+        totalno_missing_branches = 0
+        distance = 0
         
         # Fetch the missing branches field from each file
         for file in coverage_data['files'].keys():
+            
+            # If a file does not contain any missing branches, we skip
             if coverage_data['files'][file]['summary']['missing_branches'] <= 0:
                 continue
             new_missing_branches[file] = coverage_data['files'][file]['missing_branches']
+            totalno_missing_branches += coverage_data['files'][file]['summary']['missing_branches']
 
         # If missing branches store file exists
         if os.path.exists(os.getcwd()+'/testdriver/missing_branches.json'):
@@ -178,30 +188,58 @@ class DjangoTestDriver:
             except Exception:
                 logging.error("Cannot open missing branch file")
 
-            # For each file index within the missing branch store
-            for i in range(len(current_missing_branches.keys())):
+            if mode == 'distance' and 'path_history' not in current_missing_branches:
+                # For each file index within the missing branch store
+                for i in range(len(current_missing_branches.keys())):
 
-                file = list(current_missing_branches.keys())[i]
+                    file = list(current_missing_branches.keys())[i]
 
-                # Find the intersection / common branches between the current and new
-                # We label them as the leftover branches that are still missing
-                leftover_branches = self.find_common_elements(
-                    list(current_missing_branches.values())[i],
-                    list(new_missing_branches.values())[i],
-                )
+                    # Find the intersection / common branches between the current and new
+                    # We label them as the leftover branches that are still missing
+                    leftover_branches = self.find_common_elements(
+                        list(current_missing_branches.values())[i],
+                        list(new_missing_branches.values())[i],
+                    )
 
-                # If we find that the leftover branches are fewer than the current missing branches
-                # That means we have fewer missing branches to cover
-                # That is interesting!
-                if len(leftover_branches) < len(list(current_missing_branches.values())[i]):
+                    # If we find that the leftover branches are fewer than the current missing branches
+                    # That means we have fewer missing branches to cover
+                    # That is interesting!
+                    if len(leftover_branches) < len(list(current_missing_branches.values())[i]):
+                        is_interesting_result = True
+                        # Add the number of branch difference to our distance metric
+                        distance += len(list(current_missing_branches.values())[i]) - len(leftover_branches)
+
+                    # Assign the leftover branches to the file to be looked over the next coverage test
+                    current_missing_branches[file] = leftover_branches
+
+                    f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
+                    f.write(json.dumps(current_missing_branches))
+                    f.close()
+
+                    return_object = { 'dist': distance }
+            elif mode == 'hash' and 'path_history' in current_missing_branches:
+                # Get a Path ID as a hashed version of the missing branches object
+                new_path_ID = hashlib.md5( json.dumps(new_missing_branches).encode() ).hexdigest()
+
+                # Fetch the path history as a list of hashed path IDs
+                path_history:list = current_missing_branches['path_history']
+                
+                if new_path_ID not in path_history:
+                    # A new path!
                     is_interesting_result = True
+                    path_history.append(new_path_ID)
 
-                # Assign the leftover branches to the file to be looked over the next coverage test
-                current_missing_branches[file] = leftover_branches
+                    # Update the output JSON file
+                    f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
+                    f.write( json.dumps({
+                        'path_history': path_history
+                    }) )
+                    f.close()
 
-                f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
-                f.write(json.dumps(current_missing_branches))
-                f.close()
+                # Return the path ID regardless
+                return_object = { 'hash': new_path_ID }
+            else:
+                logging.error('Invalid mode operation!')
         
         # If the missing branches json doesn't exist
         else:
@@ -210,10 +248,24 @@ class DjangoTestDriver:
 
             # Begin storing the missing branches
             f = open(os.getcwd()+'/testdriver/missing_branches.json', 'w')
-            f.write(json.dumps(new_missing_branches))
+
+            if mode == 'distance':
+                f.write( json.dumps(new_missing_branches) )
+                return_object = { 'dist': totalno_missing_branches }
+            else:
+                # Get a Path ID as a hashed version of the missing branches object
+                path_ID = hashlib.md5( json.dumps(new_missing_branches).encode() ).hexdigest()
+
+                # Start saving a history of paths checked
+                f.write( json.dumps({
+                    'path_history':[ path_ID ]
+                }) )
+
+                return_object = { 'hash': path_ID }
+
             f.close()
 
-        return is_interesting_result
+        return (is_interesting_result, return_object)
 
     def find_common_elements(self, list1, list2):
         return [element for element in list1 if element in list2]
@@ -262,7 +314,7 @@ if __name__ == "__main__":
     driver = DjangoTestDriver(
         django_dir=DJANGO_DIRECTORY
     )
-    # driver.run_test()
+    # driver.run_test(None, True)
 
     # Crashing test
     driver.send_request_with_interesting(
