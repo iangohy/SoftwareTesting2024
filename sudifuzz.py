@@ -81,7 +81,7 @@ oracle = Oracle(config["target_application"], config["django_testdriver"])
 # Validate filepaths and generate chunks
 seed_chunk = SmartChunk(DjangoDict(), "http://127.0.0.1:8000/api/product/delete/")
 seed_chunk.get_chunks("http://127.0.0.1:8000/api/product/delete/")
-seedQ = [seed_chunk]
+seedQ = [seed_chunk, None]
 
 # == Main Fuzzer
 max_fuzz_cycles = config.getint("main_fuzzer", "max_fuzz_cycles")
