@@ -2,6 +2,7 @@
 
 # Configuration files
 *.ini
+!*seed.ini
 !sudifuzz_config_example.ini
 !sample_application_configuration.ini
 

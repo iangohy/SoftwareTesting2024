@@ -6,12 +6,11 @@ from pathlib import Path
 
 from oracle.oracle import Oracle
 from greybox_fuzzer.main_fuzzer import MainFuzzer
-from smart_fuzzer.input_models.djangoDict import DjangoDict
-from smart_fuzzer.smartChunk import SmartChunk
+from smart_fuzzer.chunkTreeGenerator import ChunkTreeGenerator
 
 REQUIRED_KEYS = {
-    "target_application": ["name", "command", "log_folderpath", "test_driver", "coverage"],
-    "main_fuzzer": ["max_fuzz_cycles", "mode"]
+    "target_application": ["name", "command", "log_folderpath", "test_driver", "coverage", "seed_input_files"],
+    "main_fuzzer": ["max_fuzz_cycles", 'energy_strat']
 }
 
 logger = logging.getLogger(__name__)
@@ -72,29 +71,37 @@ if len(errors) > 0:
     exit()
 
 # == Initialise components
-oracle = Oracle(config["target_application"], config["django_testdriver"])
+oracle = Oracle(config)
 # TODO: Determine if we still need oracle initiated target application
 # oracle.start_target_application_threaded()
 # time.sleep(1)
 
 # == Chunk Preprocessing
 # Validate filepaths and generate chunks
-seed_chunk = SmartChunk(DjangoDict(), "http://127.0.0.1:8000/api/product/delete/")
-seed_chunk.get_chunks("http://127.0.0.1:8000/api/product/delete/")
-seedQ = [seed_chunk, None]
+seedQ = []
+seed_files = config.get("target_application", "seed_input_files").split(",")
+for seed_file in seed_files:
+    logger.info(f"Processing seed file {seed_file}")
+    # Check if file exists
+    if not Path(seed_file).is_file():
+        raise RuntimeError(f"Error processing seed file: {seed_file}")
+    tree_generator = ChunkTreeGenerator(seed_file)
+    chunk_root = tree_generator.generate_chunk_tree()
+    seedQ.append((chunk_root, None))
+logger.info(f"Initial seedQ: {seedQ}")
 
 # == Main Fuzzer
 max_fuzz_cycles = config.getint("main_fuzzer", "max_fuzz_cycles")
-mode = config.get("main_fuzzer", "mode")
-logger.debug(f"max_fuzz_cycles={max_fuzz_cycles}, mode={mode}")
+energy_strat = config.get("main_fuzzer", "energy_strat")
+logger.debug(f"max_fuzz_cycles={max_fuzz_cycles}, energy_strat={energy_strat}")
 try:
     main_fuzzer = MainFuzzer(
         seedQ,
         oracle,
         max_fuzz_cycles=max_fuzz_cycles,
-        mode=mode
+        energy_strat=energy_strat
     )
-    seedQ, failureQ = main_fuzzer.fuzz()
+    main_fuzzer.fuzz()
 except Exception as e:
     logger.exception(e)
 

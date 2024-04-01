@@ -9,7 +9,7 @@ import shutil
 import os
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class BluetoothTestDriver():
     def __init__(self, bluetooth_dir):

@@ -1,11 +1,15 @@
 import configparser
-from schunk import SChunk
+from smart_fuzzer.schunk import SChunk
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Chunk Generator that takes in a target config input seed and returns a SChunk Tree
 class ChunkTreeGenerator:
     def __init__(self, input_config_seed):
         self.input_config_seed = input_config_seed
         self.config = configparser.ConfigParser()
+
 
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)

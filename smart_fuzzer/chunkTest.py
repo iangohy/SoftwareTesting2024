@@ -1,8 +1,8 @@
-from schunk import SChunk
-from chunkTreeGenerator import ChunkTreeGenerator
+from smart_fuzzer.schunk import SChunk
+from smart_fuzzer.chunkTreeGenerator import ChunkTreeGenerator
 
 def main():
-    seed_file = "smart_fuzzer/seed_inputs/django_seed.ini"
+    seed_file = "smart_fuzzer/sample_seed_inputs/django_seed.ini"
 
     tree_generator = ChunkTreeGenerator(seed_file)
     django_chunk_tree_root = tree_generator.generate_chunk_tree()
@@ -18,6 +18,8 @@ def main():
     django_chunk_tree_root.mutate_contents()
 
     print(django_chunk_tree_root.get_children()[0].chunk_content)
+    print(django_chunk_tree_root.get_children()[1].chunk_content)
+    print(django_chunk_tree_root.get_children()[2].chunk_content)
 
     # for i in range(10):
     #     output_chunk = django_chunk.mutate()
