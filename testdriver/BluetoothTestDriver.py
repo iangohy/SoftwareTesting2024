@@ -6,6 +6,7 @@ import logging
 from subprocess import Popen, PIPE, STDOUT
 import logging
 import shutil
+import os
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -26,8 +27,9 @@ class BluetoothTestDriver():
         
     def run_coverage(self):
         command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}lcov.info -q --rc lcov_branch_coverage=1"
-        Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+        os.system(command)
         logging.info('[OK] Coverage Done')
+        
         command = f"lcov --rc lcov_branch_coverage=1 --summary {self.bluetooth_dir}lcov.info"
         process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
         while True:
@@ -36,6 +38,7 @@ class BluetoothTestDriver():
                 logger.info(f"OUTPUT: {line}")
             if process.poll() is not None:
                 break 
+        # os.remove(f"{self.bluetooth_dir}lcov.info")
         logging.info('[OK] Summary Done')
     
     def generate_code_with_test(self, input):
@@ -47,14 +50,14 @@ class BluetoothTestDriver():
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
-        with open('bluetooth_fuzz.py', 'w') as file:
+        with open(f'{self.bluetooth_dir}bluetooth_fuzz.py', 'w') as file:
             file.write(filedata)
     
     def run_test(self, inputs, coverage: bool):        
         # Generate python file with inputs
         self.generate_code_with_test(inputs)
         
-        command = "python3 bluetooth_fuzz.py"
+        command = f"python3 {self.bluetooth_dir}bluetooth_fuzz.py"
         with open("bluetooth_fuzz.log", "a") as logfile:
             try:
                 process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
@@ -75,7 +78,7 @@ class BluetoothTestDriver():
                 break 
         
         # move flash.bin to bluetooth folder
-        self.move_flash_bin()
+        # self.move_flash_bin()
         logger.info("===END===")
     
     def analyze_results(self, response):
@@ -89,8 +92,7 @@ class BluetoothTestDriver():
     
 # Usage
 if __name__ == "__main__": 
-        
-    inputs = ["0x02"]
+    inputs = ["0x00001"]
     # Example
     for i in range(len(inputs)):
         driver = BluetoothTestDriver("../SoftwareTestingRepo/bluetooth/")
