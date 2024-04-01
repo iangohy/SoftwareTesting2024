@@ -5,6 +5,7 @@ import os
 import random
 import hashlib
 from subprocess import Popen, PIPE, STDOUT
+import time
 
 from smart_fuzzer.schunk import SChunk
 from testdriver.custom_exceptions import TestDriverCrashDetected
@@ -135,7 +136,7 @@ class DjangoTestDriver:
             logger.debug(f"Running command: {command}")
             process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             try:
-                with open("logs/djangotestdriverlogtemp.log", "w") as file:
+                with open(f"logs/django_testdriver_{int(time.time())}.log", "w") as file:
                     self.process_stdout(process, file)
             except TestDriverCrashDetected as e:
                 logger.exception(e)
