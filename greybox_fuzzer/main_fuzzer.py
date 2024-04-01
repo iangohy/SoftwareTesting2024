@@ -61,7 +61,7 @@ class MainFuzzer:
         if self.first_flag or seed[1]==None:
             self.first_flag = False
             # TODO: increase in the future but we start small for now
-            self.energy = 5
+            self.energy = 3
         elif self.energy_strat == "hash":
             # calculate based on path id
             hash = seed[1]["hash"] 
@@ -133,7 +133,7 @@ class MainFuzzer:
                 logger.debug(f"next_input: {next_input}")
                 mutated_chunk = copy.deepcopy(next_input)
                 logger.info(f">> Energy cycle: {i+1}/{energy}")
-                # mutated_chunk.mutate_chunks()
+                mutated_chunk.mutate_chunks()
                 # TODO: enable content mutation once invalid syntax handling
                 # is implemented
                 # mutated_chunk.mutate_contents()

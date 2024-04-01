@@ -2,7 +2,7 @@
 
 # Configuration files
 *.ini
-!*seed.ini
+!*sample.ini
 !sudifuzz_config_django_example.ini
 
 # Log files

@@ -65,9 +65,10 @@ for section, keys in REQUIRED_KEYS.items():
             
 logger.debug(f"Errors: {errors}")
 if len(errors) > 0:
-    logger.info("\n\n===== CONFIG FILE ERRORS =====")
+    config_file_errors = "\n\n===== CONFIG FILE ERRORS =====\n"
     for error in errors:
-        logger.info(f"Section: [{error[0]}], Key: [{error[1]}]")
+        config_file_errors += f"Section: [{error[0]}], Key: [{error[1]}]\n"
+    logger.info(config_file_errors)
     exit()
 
 # == Initialise components
@@ -105,12 +106,12 @@ try:
 except Exception as e:
     logger.exception(e)
 
-logger.info("===========")
-logger.info("Closing oracle")
+logger.info("===========\nClosing oracle")
 # TODO: Proper oracle closing handling
 oracle.signal_handler()
-logger.info("===========")
-logger.info("Sudifuzz exited")
 end_time = time.time()
-logger.info("Time taken: " + str(end_time - start_time))
-logger.info("===========")
+exited_string = "===========\n" + \
+    "Sudifuzz exited\n" + \
+    f"Time taken: {str(end_time - start_time)}\n" + \
+    "==========="
+logger.info(exited_string)

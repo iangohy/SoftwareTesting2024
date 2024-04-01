@@ -26,7 +26,7 @@ class ChunkTreeGenerator:
             section_chunk_id = 0
             for child_section in children_sections:
                 # Create intermidiate chunk here
-                section_chunk = SChunk(section_chunk_id, child_section, self.config[child_section]['content'], True, {})
+                section_chunk = SChunk(section_chunk_id, child_section, self.config[child_section]['content'], self.config[child_section].getboolean("modifiable", True), {})
                 child_chunk = self.create_child_chunk(section_chunk,
                                                       child_section, 
                                                       self.config[child_section]['content'], 

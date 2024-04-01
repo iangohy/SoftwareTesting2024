@@ -36,7 +36,8 @@ class SChunk:
     def mutate_chunks(self):
         if not self.children:
             return
-
+        elif not self.modifiable:
+            return 
         else:
             mutation = random.choice(list(ChunkMutate))
             output = list(self.children.items())
@@ -110,4 +111,4 @@ class SChunk:
         return f"SChunk id={self.chunk_id},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)}"
     
     def __repr__(self):
-        return f"<SChunk Object id={self.chunk_id},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)}>"
+        return f"<SChunk Object id={self.chunk_id},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},modifiable={self.modifiable}>"
