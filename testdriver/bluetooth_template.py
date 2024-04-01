@@ -112,11 +112,11 @@ class TargetEventsListener(Device.Listener):
         find_and_kill_processes(9000)
         # ---------------------------------------------------
 
-async def run_target():
+def run_target():
     # running this function will generate flash.bin and sometime modify build folder
     os.chdir("|bluetooth_dir|")
     command = "GCOV_PREFIX=$(pwd) GCOV_PREFIX_STRIP=3 ./zephyr.exe --bt-dev=127.0.0.1:9000"
-    await Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+    Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
 
 def find_and_kill_processes(port):
     try:
@@ -133,7 +133,7 @@ def find_and_kill_processes(port):
         else:
             logger.info(f"No processes found running on port {port}")
     except subprocess.CalledProcessError as e:
-        logger.info("Error:", e)
+        logger.info("Error")
 
 async def run_controller():
     logger.info('>>> Waiting connection to HCI...')
@@ -164,7 +164,7 @@ async def run_controller():
 
         logger.info('Waiting Advertisment from BLE Target')
         # initialing target
-        await run_target()
+        run_target()
         
         while device.listener.got_advertisement is False:
             await asyncio.sleep(0.5)
