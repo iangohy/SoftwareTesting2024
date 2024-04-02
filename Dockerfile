@@ -39,4 +39,4 @@ RUN pip2 install -r requirements_python2.txt
 COPY . .
 
 ENTRYPOINT ["python3", "sudifuzz.py", "--config"]
-CMD ["sudifuzz_config_example.ini"]
+CMD ["sudifuzz_config_django_example.ini"]

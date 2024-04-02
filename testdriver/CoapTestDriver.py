@@ -5,7 +5,8 @@ import logging
 import os
 import json
 import hashlib
-from smart_fuzzer.smartChunk import SmartChunk
+
+from smart_fuzzer.schunk import SChunk
 
 class CoapTestDriver:
     def __init__(self, coap_dir):
@@ -14,7 +15,7 @@ class CoapTestDriver:
         self.coap_dir = coap_dir
     
     # oracle to pass in 
-    async def run_test(self, chunk: SmartChunk, coverage: bool, mode: str = 'distance'):
+    async def run_test(self, chunk: SChunk, coverage: bool, mode: str = 'distance'):
         """
         When oracle passed in list of inputs 
             - response = await self.send_request(list_of_inputs[i])

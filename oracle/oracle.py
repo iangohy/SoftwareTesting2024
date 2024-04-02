@@ -6,27 +6,29 @@ import signal
 from oracle.custom_exceptions import OracleCrashDetected
 import threading
 
-from oracle.utils import non_block_read
-from smart_fuzzer.smartChunk import SmartChunk
+from smart_fuzzer.schunk import SChunk
+from testdriver import BluetoothTestDriver
 from testdriver.DjangoTestDriver import DjangoTestDriver
 from testdriver.CoapTestDriver import CoapTestDriver
 
 logger = logging.getLogger(__name__)
 
 class Oracle:
-    def __init__(self, target_app_config, django_testdriver):
-        self.target_app_config = target_app_config
+    def __init__(self, config):
+        self.target_app_config = config["target_application"]
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
-        self.coverage = target_app_config.getboolean("coverage")
+        self.coverage = self.target_app_config.getboolean("coverage")
         self.logfile = f'{self.target_app_config["log_folderpath"]}/{self.target_app_config["name"]}_{int(time.time())}.log'
 
 
-        config_testdriver = target_app_config.get("test_driver")
+        config_testdriver = self.target_app_config.get("test_driver")
         if config_testdriver == "DjangoTestDriver":
-            self.test_driver = DjangoTestDriver(django_testdriver["django_dir"])
+            self.test_driver = DjangoTestDriver(config["django_testdriver"])
         elif config_testdriver == "CoapTestDriver":
-            self.test_driver = CoapTestDriver(django_testdriver["coap_dir"])
+            self.test_driver = CoapTestDriver(config["coap_testdriver"])
+        elif config_testdriver == "BluetoothTestDriver":
+            self.test_driver = BluetoothTestDriver(config["bluetooth_testdriver"])
         else:
             raise RuntimeError(f"Invalid test driver constant [{config_testdriver}]")
 
@@ -104,31 +106,32 @@ class Oracle:
         self.exit_event.set()
 
     # Runs the test and returns True if successful and False if crash
-    def run_test(self, chunk: SmartChunk):
+    def run_test(self, chunk: SChunk):
         """Sends test input SmartChunk to test driver. Returns failed, isInteresting, additional_info_dict"""
         response = self.test_driver.run_test(chunk, self.coverage)
-        if response:
-            logger.info("=======================")
-            logger.info("status_code: " + str(response["status_code"]))
-            logger.info("=======================")
-        else:
-            logger.info("=======================")
-            logger.info("No connection adapters")
-            logger.info("=======================")
-        return (False, True, {"remarks": "some gud stuff"})
+        logger.debug(f"Response from testdriver: {response}")
+        # if response:
+        #     logger.info("=======================")
+        #     logger.info("status_code: " + str(response["status_code"]))
+        #     logger.info("=======================")
+        # else:
+        #     logger.info("=======================")
+        #     logger.info("No connection adapters")
+        #     logger.info("=======================")
+        return response
     
-        # Check if crash
-        if self.is_crashed.is_set():
-            logger.info("is_crashed set to True")
-            self.is_crashed.clear()
-            # Restart application
-            self.start_target_application_threaded()
-            return (True, True, {})
-        else:
-            logger.info("is_crashed set to False")
-            return (False, True, {})
+        # # Check if crash
+        # if self.is_crashed.is_set():
+        #     logger.info("is_crashed set to True")
+        #     self.is_crashed.clear()
+        #     # Restart application
+        #     self.start_target_application_threaded()
+        #     return (True, True, {})
+        # else:
+        #     logger.info("is_crashed set to False")
+        #     return (False, True, {})
 
-        return False
+        # return False
 
 
 if __name__ == "__main__":

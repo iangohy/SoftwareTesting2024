@@ -5,37 +5,52 @@ import os
 import random
 import hashlib
 from subprocess import Popen, PIPE, STDOUT
+import time
 
-from smart_fuzzer.smartChunk import SmartChunk
+from smart_fuzzer.schunk import SChunk
 from testdriver.custom_exceptions import TestDriverCrashDetected
 from testdriver.utils import check_for_blacklist_phrase
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
-    def __init__(self, django_dir):
+    def __init__(self, config):
         self.server_url = "http://127.0.0.1:8000/"
         self.endpoints = ["api/product/", "datatb/product/add/", "datatb/product/edit/",
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
-        self.django_dir = django_dir
+        self.django_dir = config.get("django_dir")
+        self.coverage_mode = config.get("coverage_mode", "distance")
 
     # Oracle will pass in chunk as test input
-    def run_test(self, chunk: SmartChunk, coverage: bool = False, mode: str = 'distance'):
-        logger.debug(f"Received chunk with content: {chunk.chunk_content}")
-        chunk_endpoint = chunk.chunk_content
-        # chunk_endpoint = self.endpoints[1]
+    def run_test(self, chunk: SChunk, coverage: bool = False):
+        logger.debug(f"Received chunk: {chunk}")
+        # TODO: better way to find children chunk instead of hardcoding position
+        try:
+            chunk_endpoint = chunk.children[1].get_content()
+        except KeyError:
+            chunk_endpoint = ""
+        try:
+            chunk_payload1 = chunk.children[2].children[0].get_content()
+        except KeyError:
+            chunk_payload1 = ""
+        try:
+            chunk_payload2 = chunk.children[2].children[1].get_content()
+        except KeyError:
+            chunk_payload2 = ""
+        logger.debug(f"[testcase] chunk_endpoint: {chunk_endpoint}")
+        logger.debug(f"[testcase] chunk_payload1: {chunk_payload1}")
+        logger.debug(f"[testcase] chunk_payload2: {chunk_payload2}")
 
         # TODO: update input data with actual data from chunk
         return self.send_request_with_interesting(
             endpoint=chunk_endpoint,
             input_data={
-                # Default fuzzing implementation
-                'name': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
-                'info': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
+                'name': chunk_payload1,
+                'info': chunk_payload2,
                 'price': str(random.randint(1, 100)),
             },
             method='post',
             coverage=coverage,
-            mode=mode
+            mode=self.coverage_mode
         )
     
     def send_request(self, input_data):
@@ -118,23 +133,27 @@ class DjangoTestDriver:
         if coverage:
             # Runs the coverage command on the Django directory and generates a JSON report
             command = "coverage3 run --branch --omit='tests.py' {}/manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, os.getcwd()+'/testdriver/output.json')
+            logger.debug(f"Running command: {command}")
             process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             try:
-                self.process_stdout(process, None)
+                with open(f"logs/django_testdriver_{int(time.time())}.log", "w") as file:
+                    self.process_stdout(process, file)
             except TestDriverCrashDetected as e:
                 logger.exception(e)
                 logger.error(f"Test driver crashed while running test case: {input_data}")
                 # TODO: determine return values on crash
                 return
 
+            is_interesting, cov_data = self.is_interesting(mode)
             logging.info("Coverage run complete for {}".format(text_to_replace))
-
-            logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
+            logging.info("Is it interesting? {}".format(is_interesting))
             
             response = None
+            # TODO: add cleanup (delete temporary file)
             with open("fuzz.log") as f:
                 response = {"status_code": f.readline()}
-            return response
+            response.update(cov_data)
+            return (False, is_interesting, response)
         else:
             # Runs the standard manage.py test command, look for tests in testdriver folder
             # os.system("python3 {}manage.py test testdriver/".format(self.django_dir))

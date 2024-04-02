@@ -2,8 +2,8 @@
 
 # Configuration files
 *.ini
-!sudifuzz_config_example.ini
-!sample_application_configuration.ini
+!*sample.ini
+!sudifuzz_config_django_example.ini
 
 # Log files
 *.log

@@ -3,8 +3,9 @@ from greybox_fuzzer.mutator import Mutator
 from typing import Any, List
 import random
 from oracle.oracle import Oracle
-from smart_fuzzer.smartChunk import SmartChunk
-import math
+import copy
+
+from smart_fuzzer.schunk import SChunk
 
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,12 @@ class MainFuzzer:
         self.exponent = exponent
         # store parent seed validity
         self.validity= 0
+        # store some stats to report
+        self.fuzz_cycles_completed = 0
+        self.total_test_cases_ran = 0
+        self.total_failures_found = 0
+        self.unique_states = set()
+
 
         
     def reset(self):
@@ -53,7 +60,8 @@ class MainFuzzer:
         # if first run, default fuzz 100 times
         if self.first_flag or seed[1]==None:
             self.first_flag = False
-            self.energy = 150
+            # TODO: increase in the future but we start small for now
+            self.energy = 3
         elif self.energy_strat == "hash":
             # calculate based on path id
             hash = seed[1]["hash"] 
@@ -69,6 +77,7 @@ class MainFuzzer:
             else:
                 # maximum of 150 000 for high freq paths
                 self.energy = min((150 / 1.5 * (2 ** times_cur_path_reached), 150000))
+            # TODO: does this cause duplicate addition since we already add hash above
             self.path_ids[hash] += 1 # increment because hash has been hit
         elif self.energy_strat == "dist":
             # calculate based on coverage of missing branches, larger => more missing branches hit
@@ -89,7 +98,7 @@ class MainFuzzer:
             # self.energy = 100 + (self.prev_energy * (previous_validity / math.log(self.energy)))
         return self.energy
     
-    def choose_next(self) -> SmartChunk:
+    def choose_next(self) -> SChunk:
         """Randomly choose an item from the seed q and pop out, seed is a tuple of 2"""
         seed = self.seedQ.pop(random.randint(0, len(self.seedQ)-1))
         return seed
@@ -110,24 +119,37 @@ class MainFuzzer:
             logger.info(f">>>> Starting fuzzing cycle {fuzz_cycle_num + 1}")
 
             try:
-                next_input = self.choose_next()
+                next_seed = self.choose_next()
             except Exception as e:
-                logger.error("Unable to obtain next_input")
+                logger.error("Unable to obtain next_input, assuming completed")
                 logger.exception(e)
+                self.log_stats()
                 return
             
-            energy = self.assign_energy(self.seed)
+            energy = self.assign_energy(next_seed)
+            next_input, _ = next_seed
             valid_inputs = 0
             for i in range(energy):
+                logger.debug(f"next_input: {next_input}")
+                mutated_chunk = copy.deepcopy(next_input)
                 logger.info(f">> Energy cycle: {i+1}/{energy}")
-                mutated_chunk = next_input.mutate()[0]
+                mutated_chunk.mutate_chunks()
+                # TODO: enable content mutation once invalid syntax handling
+                # is implemented
+                # mutated_chunk.mutate_contents()
+
                 failure, isInteresting, info = self.send_to_oracle(mutated_chunk)
                 logger.info(f"Test result: failure {failure} | isInteresting {isInteresting} | info {info}")
+                if self.energy_strat == "State Hash":
+                    self.unique_states.add(info.get("hash"))
+                elif self.energy_strat == "Distance":
+                    self.unique_states.add(info.get("dist"))
                 # get validity info from oracle
                 valid_inputs += 1
                 if failure:
                     # Add to failure queue
                     self.failureQ.append(mutated_chunk)
+                    self.total_failures_found += 1
                 elif isInteresting:
                     data = None
                     if self.energy_strat == "Distance":
@@ -136,11 +158,14 @@ class MainFuzzer:
                         data = info.get("hash")
                     else:
                         data = None
-                    self.seedQ.append(mutated_chunk, data)
+                    self.seedQ.append((mutated_chunk, data))
+                self.total_test_cases_ran += 1
             # record the validity of this previous seed
             self.validity = self.degree_of_validity(next_input, valid_inputs)
             self.prev_energy = energy
-        return self.seedQ, self.failureQ 
+            self.fuzz_cycles_completed += 1
+            self.log_stats()
+        return 
 
     def send_to_oracle(self, chunk):
         """
@@ -148,6 +173,18 @@ class MainFuzzer:
             failure: bool, isInteresting:bool, info: {"hash": string} OR info: {"dist": non-neg number}
         """
         return self.oracle.run_test(chunk)
+
+    def log_stats(self):
+        stats = "\n\n===== Fuzzing Stats =====\n" + \
+            f"Total fuzz cycles completed: {self.fuzz_cycles_completed}\n" + \
+            f"Total test cases ran: {self.total_test_cases_ran}\n" + \
+            f"Total failure cases found: {self.total_failures_found}\n" + \
+            f"Items remaining in SeedQ: {len(self.seedQ)}\n" + \
+            f"Unique state [{self.energy_strat}] encountered: {len(self.unique_states)} [{self.unique_states}]\n"
+
+
+        stats += "=============================="
+        logger.info(stats)
 
 if __name__ == '__main__':
     seedQ = []
@@ -160,7 +197,7 @@ class Seed:
     def __init__(self, data: str) -> None:
         """Initialize from seed data"""
         self.data = data
-        self.chunk = SmartChunk()
+        self.chunk = SChunk()
         
         # TODO: adjust this based on fuzzer chunking etc
         self.energy = 0.0
