@@ -16,7 +16,8 @@ class MainFuzzer:
         seedQ[i]"State Hash" or "Distance", first is hash, second is a number
         energy_strat = 'State Hash' OR 'Distance'
         """
-        self.seedQ = seedQ
+        self.original_seedQ = seedQ
+        self.seedQ = copy.deepcopy(seedQ)
         self.failureQ = []
         self.oracle = oracle
         self.max_fuzz_cycles = max_fuzz_cycles
@@ -100,6 +101,9 @@ class MainFuzzer:
     
     def choose_next(self) -> SChunk:
         """Randomly choose an item from the seed q and pop out, seed is a tuple of 2"""
+        if len(self.seedQ) == 0:
+            logger.info("[choose_next] SeedQ is empty, using original seedQ")
+            self.seedQ = copy.deepcopy(self.original_seedQ)
         seed = self.seedQ.pop(random.randint(0, len(self.seedQ)-1))
         return seed
     
