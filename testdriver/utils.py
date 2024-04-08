@@ -9,3 +9,12 @@ def check_for_blacklist_phrase(line: str, blacklist: list):
     for blacklist_phrase in blacklist:
             if blacklist_phrase.lower() in line.lower():
                 raise TestDriverCrashDetected(f"blacklist phrase [{blacklist_phrase}] detected")
+            
+def sanitize_input(input_str:str):
+    # Escape special characters and backslashes
+    input_str = repr(input_str)[1:-1]
+
+    # Handle quotation marks
+    input_str = input_str.replace('"', '\\"').replace("'", "\\'")
+
+    return input_str
