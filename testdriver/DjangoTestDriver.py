@@ -10,6 +10,7 @@ import time
 from smart_fuzzer.schunk import SChunk
 from testdriver.custom_exceptions import TestDriverCrashDetected
 from testdriver.utils import check_for_blacklist_phrase
+from testdriver.utils import sanitize_input
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
@@ -106,11 +107,11 @@ class DjangoTestDriver:
         
         text_to_replace = {
             # endpoint should not need "/" in front
-            "ENDPOINT": endpoint,
-            "NAME": input_data['name'],
-            "INFO": input_data['info'],
-            "PRICE": input_data['price'],
-            "METHOD": method
+            "ENDPOINT": sanitize_input(endpoint),
+            "NAME":     sanitize_input(input_data['name']),
+            "INFO":     sanitize_input(input_data['info']),
+            "PRICE":    sanitize_input(input_data['price']),
+            "METHOD":   sanitize_input(method)
         }
 
         # Reads the current template file
