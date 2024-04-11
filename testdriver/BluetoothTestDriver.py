@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 
 class BluetoothTestDriver():
-    def __init__(self, bluetooth_dir):
-        self.bluetooth_dir = bluetooth_dir
+    def __init__(self, config):
+        self.bluetooth_dir = config.get("bluetooth_dir")
         
     def move_flash_bin(self):
         try:
@@ -42,7 +42,7 @@ class BluetoothTestDriver():
         logging.info('[OK] Summary Done')
     
     def generate_code_with_test(self, input):
-        with open('bluetooth_template.py', 'r') as file:
+        with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
 
         # Replace the target string
