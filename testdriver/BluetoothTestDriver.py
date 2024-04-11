@@ -41,12 +41,12 @@ class BluetoothTestDriver():
         # os.remove(f"{self.bluetooth_dir}lcov.info")
         logging.info('[OK] Summary Done')
     
-    def generate_code_with_test(self, input):
+    def generate_code_with_test(self, chunk):
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
 
         # Replace the target string
-        filedata = filedata.replace('|replace_byte|', input)
+        filedata = filedata.replace('|replace_byte|', str(chunk.children[1].get_content().encode()))
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
