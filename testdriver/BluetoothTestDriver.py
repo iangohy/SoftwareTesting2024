@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 class BluetoothTestDriver():
     def __init__(self, config):
         self.bluetooth_dir = config.get("bluetooth_dir")
+<<<<<<< HEAD
         self.coverage_mode = config.get("coverage_mode", "distance")
+=======
+>>>>>>> bf856e8 (update)
         
     def move_flash_bin(self):
         try:
@@ -54,7 +57,11 @@ class BluetoothTestDriver():
         response.update(cov_data)
         return (False, is_interesting, response)
     
+<<<<<<< HEAD
     def generate_code_with_test(self, chunk):
+=======
+    def generate_code_with_test(self, input):
+>>>>>>> bf856e8 (update)
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
             

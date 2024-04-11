@@ -13,10 +13,15 @@ class ChunkTreeGenerator:
 
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)
+<<<<<<< HEAD
         mutation_weights = [float(i) for i in self.config["root"].get('chunkMutationWeights', "0.33 0.33 0.34").split(" ")]
         content_mutation_probability = float(self.config["root"].get('contentMutationProbability', 0.2))
         root = SChunk('root', chunk_content=None, removable=False, chunk_mutation_weights=mutation_weights, chunk_type=ChunkType.OBJECT, content_mutation_probability=content_mutation_probability)
         self.create_child_chunk(root, 'root', None, self.config.get('root', 'children'))
+=======
+        root = SChunk(0, 'root', None, True, {})
+        self.create_child_chunk(root, 'root', None, self.config['root']['children'])
+>>>>>>> bf856e8 (update)
 
         return root
 
