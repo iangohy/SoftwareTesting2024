@@ -46,6 +46,7 @@ class BluetoothTestDriver():
             filedata = file.read()
 
         # Replace the target string
+        filedata = filedata.replace('|replace_handle|', chunk.children[0].get_content())
         filedata = filedata.replace('|replace_byte|', str(chunk.children[1].get_content().encode()))
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
