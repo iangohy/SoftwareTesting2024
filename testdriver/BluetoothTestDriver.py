@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 
 class BluetoothTestDriver():
-    def __init__(self, bluetooth_dir):
-        self.bluetooth_dir = bluetooth_dir
+    def __init__(self, config):
+        self.bluetooth_dir = config.get("bluetooth_dir")
+        self.coverage_mode = config.get("coverage_mode", "distance")
         
     def move_flash_bin(self):
         try:
@@ -27,7 +28,7 @@ class BluetoothTestDriver():
         except Exception as e:
             logging.info(f"An error occurred: {e}")
         
-    def run_coverage(self):
+    def run_coverage(self, mode="hash"):
         command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}lcov.info -q --rc lcov_branch_coverage=1"
         os.system(command)
         logging.info('[OK] Coverage Done')
@@ -42,6 +43,16 @@ class BluetoothTestDriver():
                 break 
         # os.remove(f"{self.bluetooth_dir}lcov.info")
         logging.info('[OK] Summary Done')
+
+        is_interesting, cov_data = self.is_interesting(mode)
+        logging.info("Is it interesting? {}".format(is_interesting))
+
+        response = None
+        # TODO: add cleanup (delete temporary file)
+        with open("fuzz.log") as f:
+            response = {"status_code": f.readline()}
+        response.update(cov_data)
+        return (False, is_interesting, response)
     
     def generate_code_with_test(self, input):
         with open('bluetooth_template.py', 'r') as file:
@@ -67,7 +78,8 @@ class BluetoothTestDriver():
             except Exception as e:
                 logger.info(f"ERROR: {e}")
         if coverage:
-            self.run_coverage()
+            self.run_coverage(mode=self.coverage_mode)
+            # TODO: return coverage information?
     
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
