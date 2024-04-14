@@ -26,6 +26,10 @@ class DjangoTestDriver:
         logger.debug(f"Received chunk: {chunk}")
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
+        for i in payload:
+            logger.info(payload[i])
+            payload[i] = payload[i].chunk_content
+        logger.info(f"payload: {payload}")
 
         # TODO: update input data with actual data from chunk
         return self.send_request_with_interesting(
