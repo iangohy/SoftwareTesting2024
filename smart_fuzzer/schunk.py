@@ -1,8 +1,8 @@
 import random
 import configparser
 from enum import Enum
-from chunk_logger import Logger
-from mutator import Mutator
+from smart_fuzzer.chunk_logger import Logger
+from smart_fuzzer.mutator import Mutator
 
 class ChunkType(Enum):
     OBJECT = 1
@@ -123,7 +123,7 @@ class SChunk:
         return output
     
     def get_content(self):
-        match self.chunk_type:
+        match self.type:
             case ChunkType.OBJECT:
                 return self.get_children()
 
