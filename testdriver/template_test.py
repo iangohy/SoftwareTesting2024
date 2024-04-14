@@ -20,7 +20,7 @@ class CoverageTests(TestCase):
         #     'price': 73
         # }
         
-        form_data = "|FORM_DATA|"
+        form_data = json.loads('|FORM_DATA|')
         
         logging.info("========Starting request========")
         

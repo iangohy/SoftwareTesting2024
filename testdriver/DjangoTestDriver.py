@@ -94,7 +94,7 @@ class DjangoTestDriver:
         text_to_replace = {
             # endpoint should not need "/" in front
             "ENDPOINT":  sanitize_input(endpoint),
-            "FORM_DATA": sanitize_input(input_data),
+            "FORM_DATA": sanitize_input(json.dumps(input_data)),
             "METHOD":    sanitize_input(method)
         }
 
