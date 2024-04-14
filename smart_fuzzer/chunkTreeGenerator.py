@@ -1,5 +1,5 @@
 import configparser
-from schunk import SChunk, ChunkType
+from smart_fuzzer.schunk import SChunk, ChunkType
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,12 +28,14 @@ class ChunkTreeGenerator:
             children_sections = self.config.get(section_name, 'children').split()
             for child_section in children_sections:
                 # Create intermidiate chunk here
+                section_chunk_type_config = self.config[child_section].get("type", "object")
+                section_chunk_type = ChunkType[section_chunk_type_config.upper()]
                 section_chunk = SChunk(child_section, 
                                        self.config[child_section]['content'], 
                                        self.config[child_section].getboolean("modifiable", True), 
                                        {}, 
                                        {}, 
-                                       chunk_type=ChunkType.OBJECT)
+                                       chunk_type=section_chunk_type)
                 if (self.config.has_option(child_section, 'chunkMutationWeights')):
                     section_chunk.chunk_mutation_weights = list(map(float, self.config.get(child_section, 'chunkMutationWeights').split()))
 
