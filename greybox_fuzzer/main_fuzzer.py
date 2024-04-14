@@ -13,10 +13,10 @@ from smart_fuzzer.schunk import SChunk
 logger = logging.getLogger(__name__)
 
 class MainFuzzer:
-    def __init__(self, seedQ: List[Any], oracle: Oracle, max_fuzz_cycles=10, energy_strat='State Hash', exponent=2):
+    def __init__(self, seedQ: List[Any], oracle: Oracle, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
         """
-        seedQ[i]"State Hash" or "Distance", first is hash, second is a number
-        energy_strat = 'State Hash' OR 'Distance'
+        seedQ[i]: list of tuples in form (chunk, is_interesting_metric)
+        energy_strat = 'hash' OR 'distance'
         """
         self.original_seedQ = seedQ
         self.seedQ = copy.deepcopy(seedQ)
@@ -118,6 +118,7 @@ class MainFuzzer:
         """Follow greybox fuzzing algorithm, return seedQ and failureQ"""
         for fuzz_cycle_num in range(self.max_fuzz_cycles):
             logger.info(f">>>> Starting fuzzing cycle {fuzz_cycle_num + 1}")
+            logger.debug(f"SeedQ: {self.seedQ}")
 
             try:
                 next_seed = self.choose_next()
@@ -138,7 +139,7 @@ class MainFuzzer:
                 mutated_chunk.mutate_chunk_tree()
                 # TODO: enable content mutation once invalid syntax handling
                 # is implemented
-                # mutated_chunk.mutate_contents()
+                mutated_chunk.mutate_contents()
                 generate_endtime = time.time_ns()
 
                 run_starttime = time.time_ns()
@@ -156,9 +157,9 @@ class MainFuzzer:
                     self.total_failures_found += 1
                 elif isInteresting:
                     data = None
-                    if self.energy_strat == "Distance":
+                    if self.energy_strat == "distance":
                         data = info.get("dist")
-                    elif self.energy_strat == "State Hash":
+                    elif self.energy_strat == "hash":
                         data = info.get("hash")
                     else:
                         data = None

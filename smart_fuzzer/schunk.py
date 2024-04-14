@@ -49,7 +49,8 @@ class SChunk:
             return
         elif not self.modifiable:
             for chunk in self.children.values():
-                chunk.mutate_chunk_tree()
+                if isinstance(chunk, SChunk):
+                    chunk.mutate_chunk_tree()
         else:
             mutation = random.choices(list(ChunkMutate), self.chunk_mutation_weights)
             output = list(self.children.items())
@@ -99,7 +100,8 @@ class SChunk:
 
         else:
             for chunk in self.children.values():
-                chunk.mutate_contents()
+                if isinstance(chunk, SChunk):
+                    chunk.mutate_contents()
     
     def add_chunk(self, output):
         if (len(output) == 0):
