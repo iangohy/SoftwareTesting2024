@@ -13,7 +13,7 @@ class ChunkTreeGenerator:
 
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)
-        root = SChunk(0, 'root', None, False, {})
+        root = SChunk(0, 'root', None, True, {})
         self.create_child_chunk(root, 'root', None, self.config['root']['children'])
 
         return root

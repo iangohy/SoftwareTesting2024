@@ -54,12 +54,18 @@ class BluetoothTestDriver():
         response.update(cov_data)
         return (False, is_interesting, response)
     
-    def generate_code_with_test(self, input):
-        with open('bluetooth_template.py', 'r') as file:
+    def generate_code_with_test(self, chunk):
+        with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
-
+            
         # Replace the target string
-        filedata = filedata.replace('|replace_byte|', input)
+        for c in chunk.children:
+            
+            if chunk.children[c].chunk_name == "handle":
+                filedata = filedata.replace('|replace_handle|', chunk.children[c].get_content())
+            else:            
+                filedata = filedata.replace('|replace_byte|', str(chunk.children[c].get_content().encode()))
+            
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
