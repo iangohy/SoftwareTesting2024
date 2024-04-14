@@ -107,11 +107,9 @@ class DjangoTestDriver:
         
         text_to_replace = {
             # endpoint should not need "/" in front
-            "ENDPOINT": sanitize_input(endpoint),
-            "NAME":     sanitize_input(input_data['name']),
-            "INFO":     sanitize_input(input_data['info']),
-            "PRICE":    sanitize_input(input_data['price']),
-            "METHOD":   sanitize_input(method)
+            "ENDPOINT":  sanitize_input(endpoint),
+            "FORM_DATA": sanitize_input(input_data),
+            "METHOD":    sanitize_input(method)
         }
 
         # Reads the current template file
