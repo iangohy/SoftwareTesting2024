@@ -9,7 +9,7 @@ from greybox_fuzzer.main_fuzzer import MainFuzzer
 from smart_fuzzer.chunkTreeGenerator import ChunkTreeGenerator
 
 REQUIRED_KEYS = {
-    "target_application": ["name", "command", "log_folderpath", "test_driver", "coverage", "seed_input_files"],
+    "target_application": ["name", "log_folderpath", "test_driver", "coverage", "seed_input_files"],
     "main_fuzzer": ["max_fuzz_cycles", 'energy_strat']
 }
 
@@ -30,9 +30,9 @@ config = configparser.ConfigParser()
 config.read(args.config)
 
 # == Create log folder if doesn't exist
-log_folderpath = config.get("target_application", "log_folderpath")
-log_filepath = f"{log_folderpath}/sudifuzz_{int(time.time())}.log"
-Path(config["target_application"]["log_folderpath"]).mkdir(parents=True, exist_ok=True)
+log_folderpath = config.get("target_application", "log_folderpath") + f"/sudifuzz_{int(time.time())}"
+log_filepath = f"{log_folderpath}/sudifuzz.log"
+Path(log_folderpath).mkdir(parents=True, exist_ok=True)
 
 # === Set up logging
 streamhandler = logging.StreamHandler()
@@ -72,7 +72,7 @@ if len(errors) > 0:
     exit()
 
 # == Initialise components
-oracle = Oracle(config)
+oracle = Oracle(config, log_folderpath)
 # TODO: Determine if we still need oracle initiated target application
 # oracle.start_target_application_threaded()
 # time.sleep(1)
@@ -99,8 +99,9 @@ try:
     main_fuzzer = MainFuzzer(
         seedQ,
         oracle,
+        log_folderpath,
         max_fuzz_cycles=max_fuzz_cycles,
-        energy_strat=energy_strat
+        energy_strat=energy_strat,
     )
     main_fuzzer.fuzz()
 except Exception as e:

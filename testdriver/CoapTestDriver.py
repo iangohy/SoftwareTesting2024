@@ -9,10 +9,10 @@ import hashlib
 from smart_fuzzer.schunk import SChunk
 
 class CoapTestDriver:
-    def __init__(self, coap_dir):
+    def __init__(self, config):
         self.server_url = "coap://127.0.0.1:5683"
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
-        self.coap_dir = coap_dir
+        self.coap_dir = config.get("coap_dir")
     
     # oracle to pass in 
     async def run_test(self, chunk: SChunk, coverage: bool, mode: str = 'distance'):
@@ -21,13 +21,13 @@ class CoapTestDriver:
             - response = await self.send_request(list_of_inputs[i])
         """
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
-        chunk_endpoint = chunk.chunk_content
-        # chunk_endpoint = self.endpoints[0]
+        endpoint = chunk.get_lookup_chunk("endpoint").get_content()
+        payload = chunk.get_lookup_chunk("payload").get_content()
         
         self.send_request_with_interesting(
-            endpoint=chunk_endpoint,
+            endpoint=endpoint,
             # Default fuzzing implementation
-            input_data=''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', k=10)),
+            input_data=payload,
             method='post',
             coverage=coverage,
             mode=mode

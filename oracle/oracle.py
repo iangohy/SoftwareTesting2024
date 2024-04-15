@@ -14,17 +14,18 @@ from testdriver.CoapTestDriver import CoapTestDriver
 logger = logging.getLogger(__name__)
 
 class Oracle:
-    def __init__(self, config):
+    def __init__(self, config, log_folderpath):
         self.target_app_config = config["target_application"]
         self.is_crashed = threading.Event()
         self.exit_event = threading.Event()
         self.coverage = self.target_app_config.getboolean("coverage")
-        self.logfile = f'{self.target_app_config["log_folderpath"]}/{self.target_app_config["name"]}_{int(time.time())}.log'
+        self.logfile = f'{log_folderpath}/{self.target_app_config["name"]}_{int(time.time())}.log'
+        self.log_folderpath = log_folderpath
 
 
         config_testdriver = self.target_app_config.get("test_driver")
         if config_testdriver == "DjangoTestDriver":
-            self.test_driver = DjangoTestDriver(config["django_testdriver"])
+            self.test_driver = DjangoTestDriver(config["django_testdriver"], self.log_folderpath)
         elif config_testdriver == "CoapTestDriver":
             self.test_driver = CoapTestDriver(config["coap_testdriver"])
         elif config_testdriver == "BluetoothTestDriver":
@@ -106,9 +107,9 @@ class Oracle:
         self.exit_event.set()
 
     # Runs the test and returns True if successful and False if crash
-    def run_test(self, chunk: SChunk):
+    def run_test(self, chunk: SChunk, test_number):
         """Sends test input SmartChunk to test driver. Returns failed, isInteresting, additional_info_dict"""
-        response = self.test_driver.run_test(chunk, self.coverage)
+        response = self.test_driver.run_test(chunk, self.coverage, test_number)
         logger.debug(f"Response from testdriver: {response}")
         # if response:
         #     logger.info("=======================")

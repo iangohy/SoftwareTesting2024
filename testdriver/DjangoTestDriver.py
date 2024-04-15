@@ -14,15 +14,16 @@ from testdriver.utils import sanitize_input
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
-    def __init__(self, config):
+    def __init__(self, config, log_folderpath):
         self.server_url = "http://127.0.0.1:8000/"
         self.endpoints = ["api/product/", "datatb/product/add/", "datatb/product/edit/",
                 "datatb/product/delete/", "datatb/product/export/", "accounts/register/", "accounts/login/"]
         self.django_dir = config.get("django_dir")
         self.coverage_mode = config.get("coverage_mode", "distance")
+        self.log_folderpath = log_folderpath
 
     # Oracle will pass in chunk as test input
-    def run_test(self, chunk: SChunk, coverage: bool = False):
+    def run_test(self, chunk: SChunk, coverage, test_number):
         logger.debug(f"Received chunk: {chunk}")
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
@@ -31,6 +32,7 @@ class DjangoTestDriver:
             logger.debug(payload[i])
             if isinstance(payload[i], SChunk):
                 payload[i] = payload[i].chunk_content
+        logger.info(f"endpoint: {endpoint}")
         logger.info(f"payload: {payload}")
 
         return self.send_request_with_interesting(
@@ -38,7 +40,8 @@ class DjangoTestDriver:
             input_data=payload,
             method='post',
             coverage=coverage,
-            mode=self.coverage_mode
+            mode=self.coverage_mode,
+            test_number=test_number
         )
     
     def send_request(self, input_data):
@@ -82,7 +85,8 @@ class DjangoTestDriver:
             input_data={'name': "hello",'info': "bye",'price': str(1)}, 
             method="get", # post | get | put | delete | patch
             coverage=False,
-            mode="hash"
+            mode="hash",
+            test_number=None
         ):
         """
         Call interpret function to get readable inputs
@@ -122,7 +126,11 @@ class DjangoTestDriver:
             logger.debug(f"Running command: {command}")
             process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             try:
-                with open(f"logs/django_testdriver_{int(time.time())}.log", "w") as file:
+                if test_number is not None:
+                    filename = f"{self.log_folderpath}/django_testdriver_{test_number}.log"
+                else:
+                    filename = f"{self.log_folderpath}/django_testdriver_{int(time.time())}.log"
+                with open(filename, "w") as file:
                     self.process_stdout(process, file)
             except TestDriverCrashDetected as e:
                 logger.exception(e)

@@ -13,7 +13,7 @@ from smart_fuzzer.schunk import SChunk
 logger = logging.getLogger(__name__)
 
 class MainFuzzer:
-    def __init__(self, seedQ: List[Any], oracle: Oracle, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
+    def __init__(self, seedQ: List[Any], oracle: Oracle, log_folderpath, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
         """
         seedQ[i]: list of tuples in form (chunk, is_interesting_metric)
         energy_strat = 'hash' OR 'distance'
@@ -30,6 +30,7 @@ class MainFuzzer:
         self.prev_energy = 100
         self.energy = 100
         self.energy_strat = energy_strat
+        self.initial_energy = 10
         self.path_ids = {"ORIGINAL_PATH":1}
         self.total_distance = 1
         self.num_dist = 1
@@ -38,7 +39,7 @@ class MainFuzzer:
         # store parent seed validity
         self.validity= 0
         # store some stats to report
-        self.stats_collector = StatsCollector()
+        self.stats_collector = StatsCollector(log_folderpath)
 
     def reset(self):
         self.energy = 100
@@ -59,11 +60,12 @@ class MainFuzzer:
         if self.first_flag or seed[1]==None:
             self.first_flag = False
             # TODO: increase in the future but we start small for now
-            self.energy = 3
+            self.energy = self.initial_energy
         elif self.energy_strat == "hash":
             # calculate based on path id
-            hash = seed[1]["hash"] 
-            self.path_ids[hash] += 1
+            hash = seed[1]
+            if hash not in self.path_ids:
+                self.path_ids[hash] = 1
             times_cur_path_reached = self.path_ids[hash]
             self.total_paths_reached += 1
             mean_freq = self.total_paths_reached / len(self.path_ids) 
@@ -74,19 +76,20 @@ class MainFuzzer:
                 # path will be skipped entirely
             else:
                 # maximum of 150 000 for high freq paths
-                self.energy = min((150 / 1.5 * (2 ** times_cur_path_reached), 150000))
+                logger.debug(f"times_cur_path_reached: {times_cur_path_reached}")
+                self.energy = int(min((self.initial_energy * (2 ** times_cur_path_reached), 150000)))
             # TODO: does this cause duplicate addition since we already add hash above
             self.path_ids[hash] += 1 # increment because hash has been hit
         elif self.energy_strat == "dist":
             # calculate based on coverage of missing branches, larger => more missing branches hit
             # ie has travelled further
             # assign high energy if the average dist has increased
-            dist = seed[1]["dist"] 
+            dist = seed[1]
             self.total_distance += dist
             self.num_dist += 1
             avg_dist = self.total_distance / self.num_dist
             # TODO investigate this effectiveness 
-            self.energy = min(150 / 1.5 * (2 ** avg_dist),150000)
+            self.energy = int(min(150 / 1.5 * (2 ** avg_dist),150000))
         else:
             logger.error("assign_energy: energy_strat value is wrong")
             # validity code -> doesnt work if chunk is always syntactically correct
@@ -139,7 +142,7 @@ class MainFuzzer:
                 mutated_chunk.mutate_chunk_tree()
                 # TODO: enable content mutation once invalid syntax handling
                 # is implemented
-                mutated_chunk.mutate_contents()
+                # mutated_chunk.mutate_contents()
                 generate_endtime = time.time_ns()
 
                 run_starttime = time.time_ns()
@@ -168,6 +171,9 @@ class MainFuzzer:
             self.validity = self.degree_of_validity(next_input, valid_inputs)
             self.prev_energy = energy
             self.stats_collector.complete_fuzzing_cycle()
+        
+        self.stats_collector.plot_crashes()
+        self.stats_collector.plot_is_interesting()
         return 
 
     def send_to_oracle(self, chunk):
@@ -175,7 +181,8 @@ class MainFuzzer:
         Returns:
             failure: bool, isInteresting:bool, info: {"hash": string} OR info: {"dist": non-neg number}
         """
-        return self.oracle.run_test(chunk)
+        test_number = self.stats_collector.get_current_testnum()
+        return self.oracle.run_test(chunk, test_number)
 
 if __name__ == '__main__':
     seedQ = []
