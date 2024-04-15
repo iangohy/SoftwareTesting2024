@@ -41,7 +41,7 @@ streamhandler = logging.StreamHandler()
 filehandler = logging.FileHandler(log_filepath)
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s", 
-    level=logging.INFO,
+    level=logging.DEBUG,
     handlers=[
         filehandler,
         streamhandler

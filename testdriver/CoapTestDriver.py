@@ -1,5 +1,5 @@
 from aiocoap import Context, Message, Code
-import random
+import logging
 import asyncio
 import logging
 import os
@@ -13,14 +13,16 @@ class CoapTestDriver:
         self.server_url = "coap://127.0.0.1:5683"
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
         self.coap_dir = config.get("coap_dir")
+        self.logger = logging.getLogger(__name__)
     
     # oracle to pass in 
-    async def run_test(self, chunk: SChunk, coverage: bool, mode: str = 'distance'):
+    def run_test(self, chunk: SChunk, coverage: bool, mode: str = 'distance'):
         """
         When oracle passed in list of inputs 
             - response = await self.send_request(list_of_inputs[i])
         """
         logger.debug(f"Received chunk with content: {chunk.chunk_content}")
+        code = chunk.get_lookup_chunk("code").get_content()
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
         
@@ -28,7 +30,7 @@ class CoapTestDriver:
             endpoint=endpoint,
             # Default fuzzing implementation
             input_data=payload,
-            method='post',
+            method=code,
             coverage=coverage,
             mode=mode
         )

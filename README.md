@@ -11,7 +11,11 @@ docker compose up --build
 Without docker compose,
 ```
 docker build -t sudifuzz .
+
+# Default (Django Example)
 docker run -v ./logs/:/sudifuzz/logs sudifuzz
+# CoAP Example
+docker run -v ./logs/:/sudifuzz/logs sudifuzz sudifuzz_config_coap_example.ini
 ```
 ## Running (without Docker)
 ```
