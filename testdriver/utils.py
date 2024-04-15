@@ -14,7 +14,17 @@ def sanitize_input(input_str:str):
     # Escape special characters and backslashes
     input_str = repr(input_str)[1:-1]
 
+    sanitized_string = ""
+    
     # Handle quotation marks
-    input_str = input_str.replace('"', '\\"').replace("'", "\\'")
+    for char in input_str:
+        if char == "'" or char == '"':
+            # Check if the quote is already preceded by a backslash
+            if sanitized_string and sanitized_string[-1] == '\\':
+                sanitized_string += char
+            else:
+                sanitized_string += '\\' + char
+        else:
+            sanitized_string += char
 
-    return input_str
+    return sanitized_string
