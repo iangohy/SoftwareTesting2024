@@ -1,4 +1,5 @@
 */test_case.py
+.vscode
 
 # Configuration files
 *.ini

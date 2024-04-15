@@ -13,8 +13,8 @@ class ChunkTreeGenerator:
 
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)
-        root = SChunk('root', None, False, {}, {}, ChunkType.OBJECT)
-        self.create_child_chunk(root, 'root', None, self.config['root']['children'])
+        root = SChunk('root', chunk_content=None, removable=False, chunk_type=ChunkType.OBJECT)
+        self.create_child_chunk(root, 'root', None, self.config.get('root', 'children'))
 
         return root
 
@@ -22,17 +22,17 @@ class ChunkTreeGenerator:
         if chunk_children == 'None':
             if (self.config.has_option(section_name, 'chunkMutationWeights')):
                 chunk_mutation_weights = list(map(float, self.config.get(section_name, 'chunkMutationWeights').split()))
-                return SChunk(section_name, chunk_content, True, {}, {}, chunk_mutation_weights, ChunkType.STRING)
-            return SChunk(section_name, chunk_content, True, {}, {}, chunk_type=ChunkType.STRING)
+                return current_chunk.set_mutation_weights(chunk_mutation_weights)
+            return
         else:
-            children_sections = self.config.get(section_name, 'children').split()
+            children_sections = self.config[section_name].get('children', 'None').split()
             for child_section in children_sections:
-                # Create intermidiate chunk here
+                # Create intermediate chunk here
                 section_chunk_type_config = self.config[child_section].get("type", "object")
                 section_chunk_type = ChunkType[section_chunk_type_config.upper()]
                 section_chunk = SChunk(child_section, 
-                                       self.config[child_section]['content'], 
-                                       self.config[child_section].getboolean("modifiable", True), 
+                                       self.config[child_section].get('content', 'None'), 
+                                       self.config[child_section].getboolean("removable", True), 
                                        {}, 
                                        {}, 
                                        chunk_type=section_chunk_type)
@@ -41,8 +41,8 @@ class ChunkTreeGenerator:
 
                 child_chunk = self.create_child_chunk(section_chunk,
                                                       child_section, 
-                                                      self.config[child_section]['content'], 
-                                                      self.config[child_section]['children'])
+                                                      self.config[child_section].get('content', 'None'), 
+                                                      self.config[child_section].get('children', 'None'))
                 if (child_chunk != None):
                     section_chunk.add_child(child_chunk)
                 # Append intermidate chunk into current chunk

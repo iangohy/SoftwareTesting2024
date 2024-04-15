@@ -3,10 +3,12 @@ import configparser
 from enum import Enum
 from smart_fuzzer.chunk_logger import Logger
 from smart_fuzzer.mutator import Mutator
+import copy
 
 class ChunkType(Enum):
     OBJECT = 1
     STRING = 2
+    KEYVALUE = 3
 
 class ChunkMutate(Enum):
     ADD_CHUNK = 1
@@ -14,12 +16,12 @@ class ChunkMutate(Enum):
     NO_MUTATION = 3
 
 class SChunk:
-    def __init__(self, chunk_name, chunk_content=None, modifiable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING):
+    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING):
         self.chunk_name = chunk_name                            # Name of the chunk, corresponds to section name in seed config file
         self.chunk_content = chunk_content                      # Content in the chunk
-        self.modifiable = modifiable                            # modifiable flag
-        self.children = children                                # Dictionary of children chunks, children chunks may be modifiable or non-modifiable
-        self.lookup_chunks = lookup_chunks                      # Dictionary of children chunks that are only non-modifiable
+        self.removable = removable                              # removable flag
+        self.children = children                                # Dictionary of children chunks, children chunks may be removable or non-removable
+        self.lookup_chunks = lookup_chunks                      # Dictionary of children chunks that are only non-removable
         self.chunk_mutation_weights = chunk_mutation_weights    # List of weights for choosing chunk mutations, in the order of the ChunkMutate Enum
         self.config = configparser.ConfigParser()
         self.logger = Logger("SmartChunk")
@@ -34,8 +36,8 @@ class SChunk:
     def add_child(self, child_chunk):
         self.children[child_chunk.chunk_name] = child_chunk
 
-        # Add child to lookup chunks if it is not modifiable
-        if (not child_chunk.modifiable):
+        # Add child to lookup chunks if it is not removable
+        if (not child_chunk.removable):
             self.lookup_chunks[child_chunk.chunk_name] = child_chunk
     
     def get_lookup_chunk(self, lookup_chunk_name):
@@ -47,13 +49,10 @@ class SChunk:
     def mutate_chunk_tree(self):
         if not self.children:
             return
-        elif not self.modifiable:
-            for chunk in self.children.values():
-                if isinstance(chunk, SChunk):
-                    chunk.mutate_chunk_tree()
         else:
-            mutation = random.choices(list(ChunkMutate), self.chunk_mutation_weights)
+            mutation = random.choices(list(ChunkMutate), self.chunk_mutation_weights)[0]
             output = list(self.children.items())
+            self.logger.log(f"mutation for {self.chunk_name}: {mutation}")
             match mutation:
                 case ChunkMutate.ADD_CHUNK:
                     output = self.add_chunk(output)
@@ -107,10 +106,10 @@ class SChunk:
         if (len(output) == 0):
             return output
         
-        new_chunk = random.choice(output)
-        if (new_chunk[1].modifiable):
-            position = random.randrange(0, len(self.children))
-            output.insert(position, new_chunk)
+        new_chunk = copy.deepcopy(random.choice(output))
+        new_chunk[1].chunk_name = new_chunk[1].chunk_name + "~"
+        position = random.randrange(0, len(self.children))
+        output.insert(position, new_chunk)
 
         return output
     
@@ -119,15 +118,21 @@ class SChunk:
             return output
         
         chosen_chunk = random.choice(output)
-        if (chosen_chunk[1].modifiable):
+        if (chosen_chunk[1].removable):
             output.remove(chosen_chunk)
+        else:
+            self.logger.log(f"remove_chunk ignoring {chosen_chunk[1].chunk_name} as it is not removable")
 
         return output
     
     def get_content(self):
         match self.type:
             case ChunkType.OBJECT:
-                return self.get_children()
+                # Assume object holds children of key-value pairs
+                res = {}
+                for child in self.children.values():
+                    res.update(child.get_content())
+                return res
 
             case ChunkType.STRING:
                 # Return concatenation of children content
@@ -141,26 +146,24 @@ class SChunk:
                     res += str(child.get_content())
 
                 return res
-
-            # Default to string handling
+            
+            case ChunkType.KEYVALUE:
+                # Key value pair only considers first two children
+                if len(self.children) < 2:
+                    return {}
+                else:
+                    key_string = list(self.children.values())[0].get_content()
+                    value_string = list(self.children.values())[1].get_content()
+                    return {f"{key_string}": value_string}
+                    
             case _:
-                # Return concatenation of children content
-                res = ""
-                if len(self.children) == 0:
-                    return self.chunk_content
-                
-                for child in self.children.values():
-                    # self.logger.log(child)
-                    # self.logger.log(child.get_content())
-                    res += str(child.get_content())
-
-                return res
+                raise RuntimeError(f"Unable to determine type of chunk {self}")
             
+    def set_mutation_weights(self, weights):
+        self.chunk_mutation_weights = weights
             
-                
-    
     def __str__(self):
         return f"SChunk name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},chunk_mutation_weights={self.chunk_mutation_weights}"
     
     def __repr__(self):
-        return f"<SChunk Object name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},modifiable={self.modifiable},chunk_mutation_weights={self.chunk_mutation_weights}>"
+        return f"<SChunk Object name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},removable={self.removable},chunk_mutation_weights={self.chunk_mutation_weights}>"
