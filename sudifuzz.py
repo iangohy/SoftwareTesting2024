@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 import copy
 
-from greybox_fuzzer.stats_collector import StatsCollector
+from greybox_fuzzer.stats_collector import EnergyAssignmentMode, StatsCollector
 from oracle.oracle import Oracle
 from greybox_fuzzer.main_fuzzer import MainFuzzer
 from smart_fuzzer.chunkTreeGenerator import ChunkTreeGenerator
@@ -98,7 +98,7 @@ max_fuzz_cycles = config.getint("main_fuzzer", "max_fuzz_cycles")
 energy_strat = config.get("main_fuzzer", "energy_strat")
 logger.debug(f"max_fuzz_cycles={max_fuzz_cycles}, energy_strat={energy_strat}")
 try:
-    stats_collector = StatsCollector(log_folderpath)
+    stats_collector = StatsCollector(log_folderpath, mode=EnergyAssignmentMode[energy_strat.upper()])
     main_fuzzer = MainFuzzer(
         seedQ,
         oracle,
@@ -115,6 +115,7 @@ finally:
     stats_collector.log_current_stats()
     stats_collector.plot_crashes()
     stats_collector.plot_is_interesting()
+    stats_collector.plot_is_interesting_stats()
 
 end_time = time.time()
 exited_string = "\n===========\n" + \

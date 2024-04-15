@@ -31,6 +31,7 @@ class MainFuzzer:
         self.energy = 100
         self.energy_strat = energy_strat
         self.initial_energy = 10
+        self.cut_off_energy = 50
         self.path_ids = {"ORIGINAL_PATH":1}
         self.total_distance = 1
         self.num_dist = 1
@@ -77,10 +78,10 @@ class MainFuzzer:
             else:
                 # maximum of 150 000 for high freq paths
                 logger.debug(f"times_cur_path_reached: {times_cur_path_reached}")
-                self.energy = int(min((self.initial_energy * (2 ** times_cur_path_reached), 150000)))
+                self.energy = int(min((self.initial_energy * (2 ** times_cur_path_reached), self.cut_off_energy)))
             # TODO: does this cause duplicate addition since we already add hash above
             self.path_ids[hash] += 1 # increment because hash has been hit
-        elif self.energy_strat == "dist":
+        elif self.energy_strat == "distance":
             # calculate based on coverage of missing branches, larger => more missing branches hit
             # ie has travelled further
             # assign high energy if the average dist has increased
@@ -89,9 +90,9 @@ class MainFuzzer:
             self.num_dist += 1
             avg_dist = self.total_distance / self.num_dist
             # TODO investigate this effectiveness 
-            self.energy = int(min(150 / 1.5 * (2 ** avg_dist),150000))
+            self.energy = int(min(self.initial_energy * (2 ** avg_dist), self.cut_off_energy))
         else:
-            logger.error("assign_energy: energy_strat value is wrong")
+            raise RuntimeError("assign_energy: energy_strat value is wrong")
             # validity code -> doesnt work if chunk is always syntactically correct
             # need to for loop the seedQ and retroactively assign validity based on some value
             # previous_validity = self.validity
@@ -152,7 +153,7 @@ class MainFuzzer:
 
                 test_generation_ns = generate_endtime - generate_starttime
                 test_run_ns = run_endtime - run_starttime
-                self.stats_collector.add_teststats(test_generation_ns, test_run_ns, failure, info)
+                self.stats_collector.add_teststats(test_generation_ns, test_run_ns, failure, isInteresting, info)
                 # get validity info from oracle
                 valid_inputs += 1
                 if failure:
