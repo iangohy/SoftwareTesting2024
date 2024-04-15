@@ -77,8 +77,7 @@ class CoapTestDriver:
             "CODE":  code,
             "URL": endpoint,
             "PAYLOAD": input_data,
-            "COVERAGE": "True" if coverage else "False",
-            "COAP_DIR": self.coap_dir
+            "ADDRESS": self.server_url
         }
 
         # Reads the current template file
@@ -94,31 +93,31 @@ class CoapTestDriver:
             data = data.replace('|{}|'.format(var), text_to_replace[var])
 
         # Writes new TestCase for Coap
-        f = open("coap_test.py", 'w')
+        f = open(os.getcwd()+"/testdriver/coap_test.py", 'w')
         f.write(data)
         f.close()
 
         if coverage:            
-            command = "python2 coapserver.py -i 127.0.0.1 -p 5683"
+            command = "coverage2 run --branch {}/coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir)
             logger.debug(f"Running command: {command}")
             
-            process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)            
+            # process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)            
             
-            command = f"coverage2 run -m coap_test.py {self.coap_dir}"
+            # command = f"coverage run -m testdriver/ {self.coap_dir}"
             
-            process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
-            try:
-                if test_number is not None:
-                    filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
-                else:
-                    filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
-                with open(filename, "w") as file:
-                    self.process_stdout(process, file)
-            except TestDriverCrashDetected as e:
-                logger.exception(e)
-                logger.error(f"Test driver crashed while running test case: {input_data}")
-                # TODO: determine return values on crash
-                return
+            # process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+            # try:
+            #     if test_number is not None:
+            #         filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
+            #     else:
+            #         filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
+            #     with open(filename, "w") as file:
+            #         self.process_stdout(process, file)
+            # except TestDriverCrashDetected as e:
+            #     logger.exception(e)
+            #     logger.error(f"Test driver crashed while running test case: {input_data}")
+            #     # TODO: determine return values on crash
+            #     return
 
             
         #     # coverage_run.terminate()
