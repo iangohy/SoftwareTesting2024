@@ -119,7 +119,7 @@ class DjangoTestDriver:
     
         if coverage:
             # Runs the coverage command on the Django directory and generates a JSON report
-            command = "coverage3 run --branch --omit='tests.py' {}/manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, os.getcwd()+'/testdriver/output.json')
+            command = "coverage3 run --branch --omit='testdriver/*' {}/manage.py test testdriver/; coverage3 json --pretty-print -o {}".format(self.django_dir, os.getcwd()+'/testdriver/output.json')
             logger.debug(f"Running command: {command}")
             process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             try:
@@ -199,8 +199,14 @@ class DjangoTestDriver:
                 logging.error("Cannot open missing branch file")
 
             if mode == 'distance' and 'path_history' not in current_missing_branches:
+                # If it finds that the number of files with missing branches is less than the current number
+                # That means we have fewer missing branches to cover
+                # That is interesting!
+                if len(new_missing_branches.keys()) < len(current_missing_branches.keys()):
+                    is_interesting_result = True
+                
                 # For each file index within the missing branch store
-                for i in range(len(current_missing_branches.keys())):
+                for i in range( min( len(current_missing_branches.keys()), len(new_missing_branches.keys()) ) ):
 
                     file = list(current_missing_branches.keys())[i]
 
