@@ -22,7 +22,7 @@ def main():
     ### Verify tree structure    
     root_children = django_chunk_tree_root.get_children()
     print("root_children:", root_children)
-    assert(len(root_children) == 2)
+    assert(len(root_children) == 3)
 
     endpoint_children = root_children["endpoint"].get_children()
     print("endpoint_children:", endpoint_children)
@@ -31,6 +31,8 @@ def main():
     for leaf_endpoint in endpoint_children.values():
         # Leaf nodes should have no children
         assert(len(leaf_endpoint.get_children()) == 0)
+
+    django_chunk_tree_root.get_lookup_chunk("nonexistent")
 
     ### Verify mutation weights
     assert(django_chunk_tree_root.chunk_mutation_weights == [0.33, 0.33, 0.34])

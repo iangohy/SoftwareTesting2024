@@ -55,9 +55,3 @@ class ChunkTreeGenerator:
                 current_chunk.add_child(section_chunk)
 
 
-    # Concatenate entire tree to return a complete input for target application,
-    # consider chunks with children of differing chunk types (string and int etc)
-    def get_content(self, root):
-        pass
-
-

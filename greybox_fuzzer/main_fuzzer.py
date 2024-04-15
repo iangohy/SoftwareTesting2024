@@ -13,7 +13,7 @@ from smart_fuzzer.schunk import SChunk
 logger = logging.getLogger(__name__)
 
 class MainFuzzer:
-    def __init__(self, seedQ: List[Any], oracle: Oracle, log_folderpath, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
+    def __init__(self, seedQ: List[Any], oracle: Oracle, stats_collector, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
         """
         seedQ[i]: list of tuples in form (chunk, is_interesting_metric)
         energy_strat = 'hash' OR 'distance'
@@ -39,7 +39,7 @@ class MainFuzzer:
         # store parent seed validity
         self.validity= 0
         # store some stats to report
-        self.stats_collector = StatsCollector(log_folderpath)
+        self.stats_collector = stats_collector
 
     def reset(self):
         self.energy = 100
@@ -104,7 +104,9 @@ class MainFuzzer:
         if len(self.seedQ) == 0:
             logger.info("[choose_next] SeedQ is empty, using original seedQ")
             self.seedQ = copy.deepcopy(self.original_seedQ)
-        seed = self.seedQ.pop(random.randint(0, len(self.seedQ)-1))
+        item_to_pop = random.randint(0, len(self.seedQ)-1)
+        logger.info(f"Popping item {item_to_pop} from seedQ")
+        seed = self.seedQ.pop(item_to_pop)
         return seed
     
     def mutate(self):
@@ -121,10 +123,11 @@ class MainFuzzer:
         """Follow greybox fuzzing algorithm, return seedQ and failureQ"""
         for fuzz_cycle_num in range(self.max_fuzz_cycles):
             logger.info(f">>>> Starting fuzzing cycle {fuzz_cycle_num + 1}")
-            logger.debug(f"SeedQ: {self.seedQ}")
+            logger.debug(f"SeedQ ({len(self.seedQ)}): {self.seedQ}")
 
             try:
                 next_seed = self.choose_next()
+                logger.debug(f"SeedQ after pop ({len(self.seedQ)}): {self.seedQ}")
             except Exception as e:
                 logger.error("Unable to obtain next_input, assuming completed")
                 logger.exception(e)
@@ -140,9 +143,7 @@ class MainFuzzer:
                 mutated_chunk = copy.deepcopy(next_input)
                 logger.info(f">> Energy cycle: {i+1}/{energy}")
                 mutated_chunk.mutate_chunk_tree()
-                # TODO: enable content mutation once invalid syntax handling
-                # is implemented
-                # mutated_chunk.mutate_contents()
+                mutated_chunk.mutate_contents()
                 generate_endtime = time.time_ns()
 
                 run_starttime = time.time_ns()
@@ -171,9 +172,6 @@ class MainFuzzer:
             self.validity = self.degree_of_validity(next_input, valid_inputs)
             self.prev_energy = energy
             self.stats_collector.complete_fuzzing_cycle()
-        
-        self.stats_collector.plot_crashes()
-        self.stats_collector.plot_is_interesting()
         return 
 
     def send_to_oracle(self, chunk):

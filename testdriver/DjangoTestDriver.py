@@ -25,20 +25,17 @@ class DjangoTestDriver:
     # Oracle will pass in chunk as test input
     def run_test(self, chunk: SChunk, coverage, test_number):
         logger.debug(f"Received chunk: {chunk}")
+        method = chunk.get_lookup_chunk("method").get_content()
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
-        # TODO: get rid of this hack
-        for i in payload:
-            logger.debug(payload[i])
-            if isinstance(payload[i], SChunk):
-                payload[i] = payload[i].chunk_content
+        logger.info(f"method: {method}")
         logger.info(f"endpoint: {endpoint}")
         logger.info(f"payload: {payload}")
 
         return self.send_request_with_interesting(
             endpoint=endpoint,
             input_data=payload,
-            method='post',
+            method=method,
             coverage=coverage,
             mode=self.coverage_mode,
             test_number=test_number
