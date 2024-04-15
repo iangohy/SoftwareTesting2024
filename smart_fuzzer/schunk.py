@@ -16,7 +16,7 @@ class ChunkMutate(Enum):
     NO_MUTATION = 3
 
 class SChunk:
-    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING):
+    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING, content_mutation_probability=0.2):
         self.chunk_name = chunk_name                            # Name of the chunk, corresponds to section name in seed config file
         self.chunk_content = chunk_content                      # Content in the chunk
         self.removable = removable                              # removable flag
@@ -26,6 +26,7 @@ class SChunk:
         self.config = configparser.ConfigParser()
         self.logger = Logger("SmartChunk")
         self.type = chunk_type
+        self.content_mutation_probability = content_mutation_probability
     
     def get_children(self):
         return self.children
@@ -94,8 +95,12 @@ class SChunk:
 
     def mutate_contents(self):
         if not self.children:
-            content_mutator = Mutator(self.chunk_content)
-            self.chunk_content = content_mutator.mutate_n_times(self.chunk_content, 10)
+            random_value = random.random()
+            if random_value <= self.content_mutation_probability:
+                content_mutator = Mutator(None)
+                self.chunk_content = content_mutator.mutate_n_times(self.chunk_content, random.randint(5, 20))
+            else:
+                self.logger.log(f"mutate_content ignoring mutation due to random ({random_value}) > probability ({self.content_mutation_probability})")
 
         else:
             for chunk in self.children.values():
@@ -161,9 +166,9 @@ class SChunk:
             
     def set_mutation_weights(self, weights):
         self.chunk_mutation_weights = weights
-            
+
     def __str__(self):
         return f"SChunk name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},chunk_mutation_weights={self.chunk_mutation_weights}"
     
     def __repr__(self):
-        return f"<SChunk Object name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},removable={self.removable},chunk_mutation_weights={self.chunk_mutation_weights}>"
+        return f"<SChunk Object id={id(self)},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},removable={self.removable},chunk_mutation_weights={self.chunk_mutation_weights}>"

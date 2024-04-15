@@ -13,7 +13,9 @@ class ChunkTreeGenerator:
 
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)
-        root = SChunk('root', chunk_content=None, removable=False, chunk_type=ChunkType.OBJECT)
+        mutation_weights = [float(i) for i in self.config["root"].get('chunkMutationWeights', "0.33 0.33 0.34").split(" ")]
+        content_mutation_probability = float(self.config["root"].get('contentMutationProbability', 0.2))
+        root = SChunk('root', chunk_content=None, removable=False, chunk_mutation_weights=mutation_weights, chunk_type=ChunkType.OBJECT, content_mutation_probability=content_mutation_probability)
         self.create_child_chunk(root, 'root', None, self.config.get('root', 'children'))
 
         return root
@@ -30,12 +32,16 @@ class ChunkTreeGenerator:
                 # Create intermediate chunk here
                 section_chunk_type_config = self.config[child_section].get("type", "object")
                 section_chunk_type = ChunkType[section_chunk_type_config.upper()]
+                mutation_weights = [float(i) for i in self.config[child_section].get('chunkMutationWeights', "0.33 0.33 0.34").split(" ")]
+                content_mutation_probability = float(self.config[child_section].get('contentMutationProbability', 0.2))
                 section_chunk = SChunk(child_section, 
                                        self.config[child_section].get('content', 'None'), 
                                        self.config[child_section].getboolean("removable", True), 
                                        {}, 
-                                       {}, 
-                                       chunk_type=section_chunk_type)
+                                       {},
+                                       chunk_mutation_weights=mutation_weights,
+                                       chunk_type=section_chunk_type,
+                                       content_mutation_probability=content_mutation_probability)
                 if (self.config.has_option(child_section, 'chunkMutationWeights')):
                     section_chunk.chunk_mutation_weights = list(map(float, self.config.get(child_section, 'chunkMutationWeights').split()))
 
