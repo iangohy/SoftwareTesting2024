@@ -140,9 +140,13 @@ class DjangoTestDriver:
             logging.info("Is it interesting? {}".format(is_interesting))
             
             response = None
-            # TODO: add cleanup (delete temporary file)
-            with open("fuzz.log") as f:
-                response = {"status_code": f.readline()}
+            try:
+                with open("fuzz.log") as f:
+                    response = {"status_code": f.readline()}
+            except FileNotFoundError:
+                time.sleep(0.2)
+                with open("fuzz.log") as f:
+                    response = {"status_code": f.readline()}
             response.update(cov_data)
             return (False, is_interesting, response)
         else:

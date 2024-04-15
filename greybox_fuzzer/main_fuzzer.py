@@ -9,9 +9,6 @@ import time
 
 from smart_fuzzer.schunk import SChunk
 
-
-logger = logging.getLogger(__name__)
-
 class MainFuzzer:
     def __init__(self, seedQ: List[Any], oracle: Oracle, stats_collector, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
         """
@@ -41,6 +38,7 @@ class MainFuzzer:
         self.validity= 0
         # store some stats to report
         self.stats_collector = stats_collector
+        self.logger = logging.getLogger(__name__)
 
     def reset(self):
         self.energy = 100
@@ -77,7 +75,7 @@ class MainFuzzer:
                 # path will be skipped entirely
             else:
                 # maximum of 150 000 for high freq paths
-                logger.debug(f"times_cur_path_reached: {times_cur_path_reached}")
+                self.logger.debug(f"times_cur_path_reached: {times_cur_path_reached}")
                 self.energy = int(min((self.initial_energy * (2 ** times_cur_path_reached), self.cut_off_energy)))
             # TODO: does this cause duplicate addition since we already add hash above
             self.path_ids[hash] += 1 # increment because hash has been hit
@@ -103,10 +101,10 @@ class MainFuzzer:
     def choose_next(self) -> SChunk:
         """Randomly choose an item from the seed q and pop out, seed is a tuple of 2"""
         if len(self.seedQ) == 0:
-            logger.info("[choose_next] SeedQ is empty, using original seedQ")
+            self.logger.info("[choose_next] SeedQ is empty, using original seedQ")
             self.seedQ = copy.deepcopy(self.original_seedQ)
         item_to_pop = random.randint(0, len(self.seedQ)-1)
-        logger.info(f"Popping item {item_to_pop} from seedQ")
+        self.logger.info(f"Popping item {item_to_pop} from seedQ")
         seed = self.seedQ.pop(item_to_pop)
         return seed
     
@@ -123,15 +121,15 @@ class MainFuzzer:
     def fuzz(self):
         """Follow greybox fuzzing algorithm, return seedQ and failureQ"""
         for fuzz_cycle_num in range(self.max_fuzz_cycles):
-            logger.info(f">>>> Starting fuzzing cycle {fuzz_cycle_num + 1}")
-            logger.debug(f"SeedQ ({len(self.seedQ)}): {self.seedQ}")
+            self.logger.info(f">>>> Starting fuzzing cycle {fuzz_cycle_num + 1}")
+            self.logger.debug(f"SeedQ ({len(self.seedQ)}): {self.seedQ}")
 
             try:
                 next_seed = self.choose_next()
-                logger.debug(f"SeedQ after pop ({len(self.seedQ)}): {self.seedQ}")
+                self.logger.debug(f"SeedQ after pop ({len(self.seedQ)}): {self.seedQ}")
             except Exception as e:
-                logger.error("Unable to obtain next_input, assuming completed")
-                logger.exception(e)
+                self.logger.error("Unable to obtain next_input, assuming completed")
+                self.logger.exception(e)
                 self.log_stats()
                 return
             
@@ -139,10 +137,10 @@ class MainFuzzer:
             next_input, _ = next_seed
             valid_inputs = 0
             for i in range(energy):
-                logger.debug(f"next_input: {next_input}")
+                self.logger.debug(f"next_input: {next_input}")
                 generate_starttime = time.time_ns()
                 mutated_chunk = copy.deepcopy(next_input)
-                logger.info(f">> Energy cycle: {i+1}/{energy}")
+                self.logger.info(f">> Energy cycle: {i+1}/{energy}")
                 mutated_chunk.mutate_chunk_tree()
                 mutated_chunk.mutate_contents()
                 generate_endtime = time.time_ns()
@@ -181,6 +179,7 @@ class MainFuzzer:
             failure: bool, isInteresting:bool, info: {"hash": string} OR info: {"dist": non-neg number}
         """
         test_number = self.stats_collector.get_current_testnum()
+        self.logger.info(f">> Test case number {test_number}")
         return self.oracle.run_test(chunk, test_number)
 
 if __name__ == '__main__':
