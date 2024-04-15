@@ -21,19 +21,25 @@ class CoapTestDriver:
         When oracle passed in list of inputs 
             - response = await self.send_request(list_of_inputs[i])
         """
-        logger.debug(f"Received chunk with content: {chunk.chunk_content}")
+        self.logger.debug(f"Received chunk with content: {chunk.chunk_content}")
         code = chunk.get_lookup_chunk("code").get_content()
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
+        self.logger.info(f"code: {code}")
+        self.logger.info(f"endpoint: {endpoint}")
+        self.logger.info(f"payload: {payload}")
         
-        self.send_request_with_interesting(
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(asyncio.gather(self.send_request_with_interesting(
             endpoint=endpoint,
             # Default fuzzing implementation
             input_data=payload,
             method=code,
             coverage=coverage,
             mode=mode
-        )
+        )))
+        self.logger.info(res)
+        
             
     async def send_request(self, input_data):
         """
