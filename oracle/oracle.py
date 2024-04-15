@@ -7,7 +7,7 @@ from oracle.custom_exceptions import OracleCrashDetected
 import threading
 
 from smart_fuzzer.schunk import SChunk
-from testdriver import BluetoothTestDriver
+from testdriver.BluetoothTestDriver import BluetoothTestDriver
 from testdriver.DjangoTestDriver import DjangoTestDriver
 from testdriver.CoapTestDriver import CoapTestDriver
 
