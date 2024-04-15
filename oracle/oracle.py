@@ -24,7 +24,7 @@ class Oracle:
         if config_testdriver == "DjangoTestDriver":
             self.test_driver = DjangoTestDriver(config["django_testdriver"], self.log_folderpath)
         elif config_testdriver == "CoapTestDriver":
-            self.test_driver = CoapTestDriver(config["coap_testdriver"])
+            self.test_driver = CoapTestDriver(config["coap_testdriver"], self.log_folderpath)
         elif config_testdriver == "BluetoothTestDriver":
             self.test_driver = BluetoothTestDriver(config["bluetooth_testdriver"])
         else:

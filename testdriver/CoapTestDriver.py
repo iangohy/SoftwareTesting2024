@@ -4,42 +4,44 @@ import asyncio
 import logging
 import os
 import json
+import time
 import hashlib
+from subprocess import Popen, PIPE, STDOUT
+from testdriver.utils import check_for_blacklist_phrase
+from testdriver.custom_exceptions import TestDriverCrashDetected
 
 from smart_fuzzer.schunk import SChunk
 
+logger = logging.getLogger(__name__)
 class CoapTestDriver:
-    def __init__(self, config):
+    def __init__(self, config, log_folderpath):
         self.server_url = "coap://127.0.0.1:5683"
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
         self.coap_dir = config.get("coap_dir")
+        self.coverage_mode = config.get("coverage_mode", "distance")
         self.logger = logging.getLogger(__name__)
+        self.log_folderpath = log_folderpath
     
     # oracle to pass in 
-    def run_test(self, chunk: SChunk, coverage: bool, mode: str = 'distance'):
-        """
-        When oracle passed in list of inputs 
-            - response = await self.send_request(list_of_inputs[i])
-        """
-        self.logger.debug(f"Received chunk with content: {chunk.chunk_content}")
+    def run_test(self, chunk: SChunk, coverage, test_number):
+        logger.info(self.__dict__)
+        logger.info(chunk.__dict__)
+        logger.info(f"Received chunk: {chunk}")
         code = chunk.get_lookup_chunk("code").get_content()
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
-        self.logger.info(f"code: {code}")
-        self.logger.info(f"endpoint: {endpoint}")
-        self.logger.info(f"payload: {payload}")
+        logger.info(f"method: {code}")
+        logger.info(f"endpoint: {endpoint}")
+        logger.info(f"payload: {payload}")
         
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(asyncio.gather(self.send_request_with_interesting(
+        return self.send_request_with_interesting(
+            code=code,
             endpoint=endpoint,
-            # Default fuzzing implementation
             input_data=payload,
-            method=code,
             coverage=coverage,
-            mode=mode
-        )))
-        self.logger.info(res)
-        
+            mode=self.coverage_mode,
+            test_number=test_number
+        )
             
     async def send_request(self, input_data):
         """
@@ -60,55 +62,111 @@ class CoapTestDriver:
         
         return response
     
-    async def send_request_with_interesting(self,
+    def send_request_with_interesting(self,
             # Default input config
+            code,
             endpoint, 
-            method = "post", 
             input_data:str = 'Hello world!',
             coverage=False,
-            mode='hash'
+            mode='hash',
+            test_number=None
         ):
-        url = "{}{}".format(self.server_url, endpoint)
         
-        method_code = Code.GET
-        if method == 'post':
-            method_code = Code.POST
-        elif method == 'put':
-            method_code = Code.PUT
-        elif method == 'patch':
-            method_code = Code.PATCH
-        elif method == 'delete':
-            method_code = Code.DELETE
+        text_to_replace = {
+            # endpoint should not need "/" in front
+            "CODE":  code,
+            "URL": endpoint,
+            "PAYLOAD": input_data,
+            "COVERAGE": "True" if coverage else "False",
+            "COAP_DIR": self.coap_dir
+        }
 
-        if coverage:
-            coverage_run = await asyncio.create_subprocess_shell("coverage2 run --branch {}/coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
+        # Reads the current template file
+        try:
+            f = open(os.getcwd()+"/testdriver/coap_request.py", 'r')
+            data = f.read()
+            f.close()
+        except Exception as ex:
+            logging.error(ex)
+            
+        # Replaces all keywords from text_to_replace
+        for var in text_to_replace.keys():
+            data = data.replace('|{}|'.format(var), text_to_replace[var])
 
-            request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
-            logging.debug(request.token)
-            context = await Context.create_client_context()
-            response = await context.request(request).response
+        # Writes new TestCase for Coap
+        f = open("coap_test.py", 'w')
+        f.write(data)
+        f.close()
 
-            logging.info(response)
+        if coverage:            
+            command = "python2 coapserver.py -i 127.0.0.1 -p 5683"
+            logger.debug(f"Running command: {command}")
+            
+            process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)            
+            
+            command = f"coverage2 run -m coap_test.py {self.coap_dir}"
+            
+            process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+            try:
+                if test_number is not None:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
+                else:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
+                with open(filename, "w") as file:
+                    self.process_stdout(process, file)
+            except TestDriverCrashDetected as e:
+                logger.exception(e)
+                logger.error(f"Test driver crashed while running test case: {input_data}")
+                # TODO: determine return values on crash
+                return
 
-            coverage_run.terminate()
+            
+        #     # coverage_run.terminate()
 
-            json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json'))
-            await json_report.wait()
+        #     # json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json'))
+        #     # await json_report.wait()
 
-            logging.info("Coverage run complete for {}".format(input_data))
+        #     logging.info("Coverage run complete for {}".format(input_data))
 
-            logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
+        #     logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
+        # else:
+        #     # normal_run = await asyncio.create_subprocess_shell("python3 {}coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
+        #     # request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
+        #     # logging.debug(request.token)
+        #     # context = await Context.create_client_context()
+        #     # response = await context.request(request).response
+
+        #     # logging.info(response)
+
+        #     logging.info("Run complete for {}".format(input_data))
+
+    def process_stdout(self, process: Popen, logfile):
+        logger.info("Handling target application stdout and stderr")
+        # Case ignored
+        blacklist = ["segmentation fault", "core dumped"]
+        logger.debug(f"Blacklist is: {blacklist}")
+
+        while True:
+            # if self.exit_event.is_set():
+            #     raise KeyboardInterrupt()
+            os.set_blocking(process.stdout.fileno(), False)
+            # line = non_block_read(process.stdout)
+            line = process.stdout.readline()
+            if line:
+                logger.info(f"OUTPUT: {line}")
+                if logfile:
+                    logfile.write(line)
+                check_for_blacklist_phrase(line, blacklist)
+            if process.poll() is not None:
+                break
+
+        status = process.poll()
+        if status != 0:
+            raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}")
         else:
-            # normal_run = await asyncio.create_subprocess_shell("python3 {}coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
-            request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
-            logging.debug(request.token)
-            context = await Context.create_client_context()
-            response = await context.request(request).response
-
-            logging.info(response)
-
-            logging.info("Run complete for {}".format(input_data))
-
+            logger.debug("Process exited with status 0")
+            
+            
     def is_interesting(self, mode:str = 'hash'):
         # Opens the coverage JSON report
         try:
