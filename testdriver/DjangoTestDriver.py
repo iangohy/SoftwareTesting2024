@@ -24,31 +24,18 @@ class DjangoTestDriver:
     # Oracle will pass in chunk as test input
     def run_test(self, chunk: SChunk, coverage: bool = False):
         logger.debug(f"Received chunk: {chunk}")
-        # TODO: better way to find children chunk instead of hardcoding position
-        try:
-            chunk_endpoint = chunk.children[1].get_content()
-        except KeyError:
-            chunk_endpoint = ""
-        try:
-            chunk_payload1 = chunk.children[2].children[0].get_content()
-        except KeyError:
-            chunk_payload1 = ""
-        try:
-            chunk_payload2 = chunk.children[2].children[1].get_content()
-        except KeyError:
-            chunk_payload2 = ""
-        logger.debug(f"[testcase] chunk_endpoint: {chunk_endpoint}")
-        logger.debug(f"[testcase] chunk_payload1: {chunk_payload1}")
-        logger.debug(f"[testcase] chunk_payload2: {chunk_payload2}")
+        endpoint = chunk.get_lookup_chunk("endpoint").get_content()
+        payload = chunk.get_lookup_chunk("payload").get_content()
+        # TODO: get rid of this hack
+        for i in payload:
+            logger.debug(payload[i])
+            if isinstance(payload[i], SChunk):
+                payload[i] = payload[i].chunk_content
+        logger.info(f"payload: {payload}")
 
-        # TODO: update input data with actual data from chunk
         return self.send_request_with_interesting(
-            endpoint=chunk_endpoint,
-            input_data={
-                'name': chunk_payload1,
-                'info': chunk_payload2,
-                'price': str(random.randint(1, 100)),
-            },
+            endpoint=endpoint,
+            input_data=payload,
             method='post',
             coverage=coverage,
             mode=self.coverage_mode
@@ -107,11 +94,9 @@ class DjangoTestDriver:
         
         text_to_replace = {
             # endpoint should not need "/" in front
-            "ENDPOINT": sanitize_input(endpoint),
-            "NAME":     sanitize_input(input_data['name']),
-            "INFO":     sanitize_input(input_data['info']),
-            "PRICE":    sanitize_input(input_data['price']),
-            "METHOD":   sanitize_input(method)
+            "ENDPOINT":  sanitize_input(endpoint),
+            "FORM_DATA": sanitize_input(json.dumps(input_data)),
+            "METHOD":    sanitize_input(method)
         }
 
         # Reads the current template file
@@ -300,7 +285,7 @@ class DjangoTestDriver:
         logger.info("Handling target application stdout and stderr")
         # Case ignored
         blacklist = ["segmentation fault", "core dumped"]
-        logger.info(f"Blacklist is: {blacklist}")
+        logger.debug(f"Blacklist is: {blacklist}")
 
         while True:
             # if self.exit_event.is_set():
@@ -309,7 +294,7 @@ class DjangoTestDriver:
             # line = non_block_read(process.stdout)
             line = process.stdout.readline()
             if line:
-                logger.info(f"OUTPUT: {line}")
+                logger.debug(f"OUTPUT: {line}")
                 if logfile:
                     logfile.write(line)
                 check_for_blacklist_phrase(line, blacklist)

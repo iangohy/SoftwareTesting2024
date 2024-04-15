@@ -20,11 +20,7 @@ class CoverageTests(TestCase):
         #     'price': 73
         # }
         
-        form_data = {
-            'name': "|NAME|",
-            'info': "|INFO|",
-            'price': "|PRICE|" # should be integer
-        }
+        form_data = json.loads('|FORM_DATA|')
         
         logging.info("========Starting request========")
         

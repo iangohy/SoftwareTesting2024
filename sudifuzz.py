@@ -110,8 +110,8 @@ logger.info("===========\nClosing oracle")
 # TODO: Proper oracle closing handling
 oracle.signal_handler()
 end_time = time.time()
-exited_string = "===========\n" + \
+exited_string = "\n===========\n" + \
     "Sudifuzz exited\n" + \
-    f"Time taken: {str(end_time - start_time)}\n" + \
+    f"Sudifuzz ran for : {str(end_time - start_time)}s\n" + \
     "==========="
 logger.info(exited_string)

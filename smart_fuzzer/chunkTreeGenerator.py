@@ -1,5 +1,5 @@
 import configparser
-from smart_fuzzer.schunk import SChunk
+from smart_fuzzer.schunk import SChunk, ChunkType
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,20 +13,32 @@ class ChunkTreeGenerator:
 
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)
-        root = SChunk(0, 'root', None, True, {})
+        root = SChunk('root', None, False, {}, {}, ChunkType.OBJECT)
         self.create_child_chunk(root, 'root', None, self.config['root']['children'])
 
         return root
 
     def create_child_chunk(self, current_chunk, section_name, chunk_content, chunk_children):
         if chunk_children == 'None':
-            return SChunk(0, section_name, chunk_content, True, {})
+            if (self.config.has_option(section_name, 'chunkMutationWeights')):
+                chunk_mutation_weights = list(map(float, self.config.get(section_name, 'chunkMutationWeights').split()))
+                return SChunk(section_name, chunk_content, True, {}, {}, chunk_mutation_weights, ChunkType.STRING)
+            return SChunk(section_name, chunk_content, True, {}, {}, chunk_type=ChunkType.STRING)
         else:
             children_sections = self.config.get(section_name, 'children').split()
-            section_chunk_id = 0
             for child_section in children_sections:
                 # Create intermidiate chunk here
-                section_chunk = SChunk(section_chunk_id, child_section, self.config[child_section]['content'], self.config[child_section].getboolean("modifiable", True), {})
+                section_chunk_type_config = self.config[child_section].get("type", "object")
+                section_chunk_type = ChunkType[section_chunk_type_config.upper()]
+                section_chunk = SChunk(child_section, 
+                                       self.config[child_section]['content'], 
+                                       self.config[child_section].getboolean("modifiable", True), 
+                                       {}, 
+                                       {}, 
+                                       chunk_type=section_chunk_type)
+                if (self.config.has_option(child_section, 'chunkMutationWeights')):
+                    section_chunk.chunk_mutation_weights = list(map(float, self.config.get(child_section, 'chunkMutationWeights').split()))
+
                 child_chunk = self.create_child_chunk(section_chunk,
                                                       child_section, 
                                                       self.config[child_section]['content'], 
@@ -35,8 +47,6 @@ class ChunkTreeGenerator:
                     section_chunk.add_child(child_chunk)
                 # Append intermidate chunk into current chunk
                 current_chunk.add_child(section_chunk)
-
-                section_chunk_id += 1
 
 
     # Concatenate entire tree to return a complete input for target application,

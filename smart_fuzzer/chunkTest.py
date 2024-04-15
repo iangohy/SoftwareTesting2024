@@ -2,25 +2,23 @@ from smart_fuzzer.schunk import SChunk
 from smart_fuzzer.chunkTreeGenerator import ChunkTreeGenerator
 
 def main():
-    seed_file = "smart_fuzzer/sample_seed_inputs/django_seed.ini"
+    seed_file = "./django_seed_1_sample.ini"
 
     tree_generator = ChunkTreeGenerator(seed_file)
     django_chunk_tree_root = tree_generator.generate_chunk_tree()
     
     print(django_chunk_tree_root.get_children())
 
-    django_chunk_tree_root.mutate_chunks()
+    django_chunk_tree_root.mutate_chunk_tree()
 
     print(django_chunk_tree_root.get_children())
-    print(django_chunk_tree_root.get_children()[0])
-    print(django_chunk_tree_root.get_children()[0].chunk_name)
+    #print(django_chunk_tree_root.get_children()['endpoints'].get_children())
 
     django_chunk_tree_root.mutate_contents()
 
-    print(django_chunk_tree_root.get_children()[0].chunk_content)
-    print(django_chunk_tree_root.get_children()[1].chunk_content)
-    print(django_chunk_tree_root.get_children()[2].chunk_content)
-
+    print(django_chunk_tree_root.get_children()['endpoint'].get_children()['endpoint0'])
+    print("content:", django_chunk_tree_root.get_lookup_chunk("endpoint").get_content())
+    
     # for i in range(10):
     #     output_chunk = django_chunk.mutate()
     #     django_chunk.write_output("smart_fuzzer/mutation_outputs/django_outputs.txt", output_chunk)
