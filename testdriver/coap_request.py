@@ -22,7 +22,7 @@ def test_case():
     client.stop()
     
     if response:
-        with open("|COAP_DIR|/coap_fuzz.log", "w") as f:
+        with open("coap_fuzz.log", "w") as f:
             f.write(str(response))
             
     

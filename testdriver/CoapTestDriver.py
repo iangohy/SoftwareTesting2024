@@ -5,6 +5,7 @@ import logging
 import os
 import json
 import time
+import signal
 import hashlib
 from subprocess import Popen, PIPE, STDOUT
 from testdriver.utils import check_for_blacklist_phrase
@@ -77,8 +78,7 @@ class CoapTestDriver:
             "CODE":  code,
             "URL": endpoint,
             "PAYLOAD": input_data,
-            "TYPE": "0",
-            "COAP_DIR": self.coap_dir
+            "TYPE": "0"
         }
 
         # Reads the current template file
@@ -102,13 +102,11 @@ class CoapTestDriver:
             command = "coverage2 run {}/coapserver.py -i 127.0.0.1 -p 5683".format(self.coap_dir)
             logger.info(f"Running command: {command}")
             process_one = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)            
-            
+                
             command = f"python2 {self.coap_dir}/coap_test.py"
             logger.info(f"Running command: {command}")
             process_two = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
-            command = "coverage2 json --pretty-print -o {}/output.json".format(self.coap_dir)
-            Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
             try:
                 if test_number is not None:
@@ -123,35 +121,38 @@ class CoapTestDriver:
                 # TODO: determine return values on crash
                 return
             
-            # process_one.terminate()
             
+            # WAIT FOR TEST CASE TO FINISH
+            while process_two.poll() is None:            
+                logger.info(f"Running")
+            
+            
+            logger.info(f"Not running")
+            os.killpg(os.getpgid(process_one.pid), signal.SIGTERM) 
+            
+            # WAIT FOR COAP SERVER TO END
+            while process_one.poll() is None:            
+                logger.info(f"Running")
                 
-            # logger.info("Process one done")
-            # command = "coverage2 json --pretty-print -o {}".format(self.coap_dir+'/output.json')
-            # logger.info(f"Running command: {command}")
-            # os.system(command)
-            # process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
-        
-        
-        
-        #     # coverage_run.terminate()
-
-        #     # json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json'))
-        #     # await json_report.wait()
-
-        #     logging.info("Coverage run complete for {}".format(input_data))
-
-        #     logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
-        # else:
-        #     # normal_run = await asyncio.create_subprocess_shell("python3 {}coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
-        #     # request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
-        #     # logging.debug(request.token)
-        #     # context = await Context.create_client_context()
-        #     # response = await context.request(request).response
-
-        #     # logging.info(response)
-
-        #     logging.info("Run complete for {}".format(input_data))
+            command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
+            logger.info(f"Running command: {command}")
+            Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+            
+            is_interesting, cov_data = self.is_interesting(mode)
+            logging.info("Coverage run complete for {}".format(text_to_replace))
+            logging.info("Is it interesting? {}".format(is_interesting))
+            
+            response = None
+            try:
+                with open("coap_fuzz.log") as f:
+                    response = {"status_code": f.readline()}
+            except FileNotFoundError:
+                time.sleep(0.2)
+                with open("coap_fuzz.log") as f:
+                    response = {"status_code": f.readline()}
+            response.update(cov_data)
+            
+            return (False, is_interesting, response)
 
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
