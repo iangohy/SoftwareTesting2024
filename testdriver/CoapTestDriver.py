@@ -77,7 +77,8 @@ class CoapTestDriver:
             "CODE":  code,
             "URL": endpoint,
             "PAYLOAD": input_data,
-            "ADDRESS": self.server_url
+            "TYPE": "0",
+            "COAP_DIR": self.coap_dir
         }
 
         # Reads the current template file
@@ -100,15 +101,39 @@ class CoapTestDriver:
         if coverage:            
             command = "coverage2 run {}/coapserver.py -i 127.0.0.1 -p 5683".format(self.coap_dir)
             logger.info(f"Running command: {command}")
-            
             process_one = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)            
             
             command = f"python2 {self.coap_dir}/coap_test.py"
             logger.info(f"Running command: {command}")
-            
             process_two = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
+            command = "coverage2 json --pretty-print -o {}/output.json".format(self.coap_dir)
+            Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
+            try:
+                if test_number is not None:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
+                else:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
+                with open(filename, "w") as file:
+                    self.process_stdout(process_two, file)
+            except TestDriverCrashDetected as e:
+                logger.exception(e)
+                logger.error(f"Test driver crashed while running test case: {input_data}")
+                # TODO: determine return values on crash
+                return
+            
+            # process_one.terminate()
+            
+                
+            # logger.info("Process one done")
+            # command = "coverage2 json --pretty-print -o {}".format(self.coap_dir+'/output.json')
+            # logger.info(f"Running command: {command}")
+            # os.system(command)
+            # process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+        
+        
+        
         #     # coverage_run.terminate()
 
         #     # json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json'))
