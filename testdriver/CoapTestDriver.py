@@ -76,8 +76,7 @@ class CoapTestDriver:
             # endpoint should not need "/" in front
             "CODE":  code,
             "URL": endpoint,
-            "PAYLOAD": input_data,
-            "ADDRESS": self.server_url
+            "PAYLOAD": input_data
         }
 
         # Reads the current template file
@@ -108,7 +107,21 @@ class CoapTestDriver:
             
             process_two = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
+            try:
+                if test_number is not None:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
+                else:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
+                with open(filename, "w") as file:
+                    self.process_stdout(process_two, file)
+            except TestDriverCrashDetected as e:
+                logger.exception(e)
+                logger.error(f"Test driver crashed while running test case: {input_data}")
+                # TODO: determine return values on crash
+                return
             
+            command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
+            process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
         #     # coverage_run.terminate()
 
         #     # json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json'))
