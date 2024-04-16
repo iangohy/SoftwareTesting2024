@@ -19,7 +19,7 @@ class CoapTestDriver:
         self.server_url = "coap://127.0.0.1:5683"
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
         self.coap_dir = config.get("coap_dir")
-        self.coverage_mode = config.get("coverage_mode", "distance")
+        self.coverage_mode = config.get("coverage_mode", "hash")
         self.logger = logging.getLogger(__name__)
         self.log_folderpath = log_folderpath
     
@@ -72,7 +72,7 @@ class CoapTestDriver:
             mode='hash',
             test_number=None
         ):
-        
+                
         text_to_replace = {
             # endpoint should not need "/" in front
             "CODE":  code,
@@ -119,7 +119,7 @@ class CoapTestDriver:
                 logger.exception(e)
                 logger.error(f"Test driver crashed while running test case: {input_data}")
                 # TODO: determine return values on crash
-                return
+                return (False,False,{})
             
             
             # WAIT FOR TEST CASE TO FINISH
@@ -180,7 +180,6 @@ class CoapTestDriver:
         else:
             logger.debug("Process exited with status 0")
             
-            
     def is_interesting(self, mode:str = 'hash'):
         # Opens the coverage JSON report
         try:
@@ -197,7 +196,7 @@ class CoapTestDriver:
         new_missing_lines = {}
         totalno_missing_lines = 0
         distance = 0
-
+        
         # Fetch the missing lines field from each file
         for file in coverage_data['files'].keys():
 
@@ -246,6 +245,7 @@ class CoapTestDriver:
                     f.write(json.dumps(current_missing_lines))
                     f.close()
             elif mode == 'hash' and 'path_history' in current_missing_lines:
+                
                 # Get a Path ID as a hashed version of the missing lines object
                 new_path_ID = hashlib.md5( json.dumps(new_missing_lines).encode() ).hexdigest()
 
@@ -263,7 +263,7 @@ class CoapTestDriver:
                         'path_history': path_history
                     }) )
                     f.close()
-
+                    
                 # Return the path ID regardless
                 return_object = { 'hash': new_path_ID }
             else:
