@@ -119,7 +119,8 @@ class CoapTestDriver:
                 logger.exception(e)
                 logger.error(f"Test driver crashed while running test case: {input_data}")
                 # TODO: determine return values on crash
-                return (False,False,{})
+                # Failure true
+                return (True,False,{})
             
             
             # WAIT FOR TEST CASE TO FINISH
@@ -138,7 +139,11 @@ class CoapTestDriver:
             logger.info(f"Running command: {command}")
             Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
-            is_interesting, cov_data = self.is_interesting(mode)
+            try:
+                is_interesting, cov_data = self.is_interesting(mode)
+            except Exception as e:
+                # Failure true
+                return (True, False, {})
             logging.info("Coverage run complete for {}".format(text_to_replace))
             logging.info("Is it interesting? {}".format(is_interesting))
             

@@ -18,6 +18,7 @@ class MainFuzzer:
         self.original_seedQ = seedQ
         self.seedQ = copy.deepcopy(seedQ)
         self.failureQ = []
+        self.total_failures_found = 0
         self.oracle = oracle
         self.max_fuzz_cycles = max_fuzz_cycles
         # TODO remove unused
