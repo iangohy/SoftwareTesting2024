@@ -1,5 +1,12 @@
 import random
 import string
+from enum import Enum
+
+class ASCIIMutations(Enum):
+    DELETE = 1
+    FLIP_BIT = 2
+    INSERT_RANDOM_ASCII = 3
+    NO_MUTATION = 4
 
 class Mutator:
     """A mutator 
@@ -39,6 +46,24 @@ class Mutator:
         mutator = random.choice(self.mutators)
         return mutator(string, start)
     
+    def mutate_with_choice(self, string, ascii_mutation, start=0):  # to do: mod this to be Seed obj if needed
+        """Function to call when mutating a string with a chosen ascii mutation"""
+        mutator = None
+        match ascii_mutation:
+            case ASCIIMutations.DELETE:
+                mutator = self.delete_random_char
+
+            case ASCIIMutations.FLIP_BIT:
+                mutator = self.flip_bit
+
+            case ASCIIMutations.INSERT_RANDOM_ASCII:
+                mutator = self.insert_random_ascii
+
+            case ASCIIMutations.NO_MUTATION:
+                mutator = self.no_mutation
+                
+        return mutator(string, start)
+    
     def mutate_n_times(self, string, n=1, start=0):  # to do: mod this to be Seed obj if needed
         """Call when mutating more than once when mutating a string"""
         output = string
@@ -49,6 +74,15 @@ class Mutator:
             output = mutator(output, start)
         return output
     
+    def mutate_n_times_with_choice(self, string, ascii_mutation, n=1, start=0):
+        """Call when mutating more than once when mutating a string with a chosen ascii mutation"""
+        output = string
+        for _ in range(0, n):
+            if (len(output)==1):
+                break
+            output = self.mutate_with_choice(output, ascii_mutation, start)
+        return output
+
     def setup(self):
         if self.seed != None:
             random.seed(self.seed)
@@ -123,4 +157,7 @@ class Mutator:
         value = str(value)
         pos = random.randint(start, len(value) - 1)
         return value[:pos] + value[pos + 1:]
+    
+    def no_mutation(self, value, start=0):
+        return value
     
