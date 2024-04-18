@@ -20,7 +20,7 @@ class BluetoothTestDriver():
         
     def move_flash_bin(self):
         try:
-            shutil.copyfile("./flash.bin", self.bluetooth_dir+"flash.bin")
+            shutil.copyfile("./flash.bin", self.bluetooth_dir+"/flash.bin")
         except FileNotFoundError:
             logging.info("File not found.")
         except PermissionError:
@@ -28,12 +28,12 @@ class BluetoothTestDriver():
         except Exception as e:
             logging.info(f"An error occurred: {e}")
         
-    def run_coverage(self, mode="hash"):
-        command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}lcov.info -q --rc lcov_branch_coverage=1"
+    def run_coverage(self):
+        command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}/lcov.info -q --rc lcov_branch_coverage=1"
         os.system(command)
         logging.info('[OK] Coverage Done')
         
-        command = f"lcov --rc lcov_branch_coverage=1 --summary {self.bluetooth_dir}lcov.info"
+        command = f"lcov --rc lcov_branch_coverage=1 --summary {self.bluetooth_dir}/lcov.info"
         process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
         while True:
             line = process.stdout.readline()
@@ -69,14 +69,14 @@ class BluetoothTestDriver():
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
-        with open(f'{self.bluetooth_dir}bluetooth_fuzz.py', 'w') as file:
+        with open(f'{self.bluetooth_dir}/bluetooth_fuzz.py', 'w') as file:
             file.write(filedata)
     
     def run_test(self, inputs, coverage: bool):        
         # Generate python file with inputs
         self.generate_code_with_test(inputs)
         
-        command = f"python3 {self.bluetooth_dir}bluetooth_fuzz.py"
+        command = f"python3 {self.bluetooth_dir}/bluetooth_fuzz.py"
         with open("bluetooth_fuzz.log", "a") as logfile:
             try:
                 process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
@@ -86,6 +86,9 @@ class BluetoothTestDriver():
         if coverage:
             self.run_coverage(mode=self.coverage_mode)
             # TODO: return coverage information?
+        # # logger.info(f"Chunk Children: {chunk.children}")
+        # is_interesting, cov_data = self.is_interesting(mode)
+        # return (False, is_interesting, response)
     
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
