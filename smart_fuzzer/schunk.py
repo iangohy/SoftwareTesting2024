@@ -27,6 +27,7 @@ class SChunk:
         self.logger = Logger("SmartChunk")
         self.type = chunk_type
         self.content_mutation_weights = content_mutation_weights
+        self.content_mutator = Mutator(None)
     
     def get_children(self):
         return self.children
@@ -92,15 +93,14 @@ class SChunk:
             for tup in output:
                 self.children[tup[1].chunk_name] = tup[1]
 
-
+    # Mutate chunk_content a random number of times, applying a random ascii mutation each time for n times
+    # (e.g run ASCIIMutations.FLIP_BIT 3 times followed by ASCIIMutations.DELETE 2 times) 
     def mutate_contents(self):
         if not self.children:
-            mutation = random.choices(list(ASCIIMutations), self.content_mutation_weights)
             content_mutator = Mutator(self.chunk_content)
-            self.chunk_content = content_mutator.mutate_n_times_with_choice(self.chunk_content, mutation, random.randint(1, 10))
-
-            # self.chunk_content = content_mutator.mutate_n_times(self.chunk_content, random.randint(5, 20))
-            # self.logger.log(f"mutate_content ignoring mutation due to random ({random_value}) > probability ({self.content_mutation_probability})")
+            for _ in range(random.randint(1, 20)):
+                mutation = random.choices(list(ASCIIMutations), self.content_mutation_weights)[0]
+                self.chunk_content = content_mutator.mutate_n_times_with_choice(string=self.chunk_content, ascii_mutation=mutation, n=random.randint(1, 10))
 
         else:
             for chunk in self.children.values():

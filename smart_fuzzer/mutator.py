@@ -1,5 +1,6 @@
 import random
 import string
+from smart_fuzzer.chunk_logger import Logger
 from enum import Enum
 
 class ASCIIMutations(Enum):
@@ -17,6 +18,7 @@ class Mutator:
             str: the mutated string (for all other modes)
     """
     def __init__(self, seed, mode="ascii"):
+        self.logger = Logger("Content Mutation")
         self.mode = mode
         self.seed = seed
         self.mutators = [self.delete_random_char]
@@ -61,6 +63,11 @@ class Mutator:
 
             case ASCIIMutations.NO_MUTATION:
                 mutator = self.no_mutation
+
+            case _:
+                raise Exception("No match for ASCII mutation")
+            
+        self.logger.log(f"content mutation for {string}: {ascii_mutation}")
                 
         return mutator(string, start)
     
