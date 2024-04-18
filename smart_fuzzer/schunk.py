@@ -2,7 +2,7 @@ import random
 import configparser
 from enum import Enum
 from smart_fuzzer.chunk_logger import Logger
-from smart_fuzzer.mutator import Mutator
+from smart_fuzzer.mutator import Mutator, ASCIIMutations
 import copy
 
 class ChunkType(Enum):
@@ -16,7 +16,7 @@ class ChunkMutate(Enum):
     NO_MUTATION = 3
 
 class SChunk:
-    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING, content_mutation_probability=0.2):
+    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING, content_mutation_weights=[0.25, 0.25, 0.25, 0.25]):
         self.chunk_name = chunk_name                            # Name of the chunk, corresponds to section name in seed config file
         self.chunk_content = chunk_content                      # Content in the chunk
         self.removable = removable                              # removable flag
@@ -26,7 +26,8 @@ class SChunk:
         self.config = configparser.ConfigParser()
         self.logger = Logger("SmartChunk")
         self.type = chunk_type
-        self.content_mutation_probability = content_mutation_probability
+        self.content_mutation_weights = content_mutation_weights
+        self.content_mutator = Mutator(None)
     
     def get_children(self):
         return self.children
@@ -92,15 +93,14 @@ class SChunk:
             for tup in output:
                 self.children[tup[1].chunk_name] = tup[1]
 
-
+    # Mutate chunk_content a random number of times, applying a random ascii mutation each time for n times
+    # (e.g run ASCIIMutations.FLIP_BIT 3 times followed by ASCIIMutations.DELETE 2 times) 
     def mutate_contents(self):
         if not self.children:
-            random_value = random.random()
-            if random_value <= self.content_mutation_probability:
-                content_mutator = Mutator(None)
-                self.chunk_content = content_mutator.mutate_n_times(self.chunk_content, random.randint(5, 20))
-            else:
-                self.logger.log(f"mutate_content ignoring mutation due to random ({random_value}) > probability ({self.content_mutation_probability})")
+            content_mutator = Mutator(self.chunk_content)
+            for _ in range(random.randint(1, 20)):
+                mutation = random.choices(list(ASCIIMutations), self.content_mutation_weights)[0]
+                self.chunk_content = content_mutator.mutate_n_times_with_choice(string=self.chunk_content, ascii_mutation=mutation, n=random.randint(1, 10))
 
         else:
             for chunk in self.children.values():
@@ -164,11 +164,11 @@ class SChunk:
             case _:
                 raise RuntimeError(f"Unable to determine type of chunk {self}")
             
-    def set_mutation_weights(self, weights):
+    def set_chunk_mutation_weights(self, weights):
         self.chunk_mutation_weights = weights
 
     def __str__(self):
-        return f"SChunk name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},chunk_mutation_weights={self.chunk_mutation_weights}"
+        return f"SChunk name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},chunk_mutation_weights={self.chunk_mutation_weights},content_mutation_weights={self.content_mutation_weights}"
     
     def __repr__(self):
-        return f"<SChunk Object id={id(self)},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},removable={self.removable},chunk_mutation_weights={self.chunk_mutation_weights}>"
+        return f"<SChunk Object id={id(self)},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},removable={self.removable},chunk_mutation_weights={self.chunk_mutation_weights},content_mutation_weights={self.content_mutation_weights}>"

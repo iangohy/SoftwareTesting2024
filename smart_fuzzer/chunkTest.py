@@ -32,15 +32,15 @@ def main():
         # Leaf nodes should have no children
         assert(len(leaf_endpoint.get_children()) == 0)
 
-    django_chunk_tree_root.get_lookup_chunk("nonexistent")
+    # django_chunk_tree_root.get_lookup_chunk("nonexistent")
 
     ### Verify mutation weights
     assert(django_chunk_tree_root.chunk_mutation_weights == [0.33, 0.33, 0.34])
     assert(django_chunk_tree_root.get_lookup_chunk("endpoint").chunk_mutation_weights == [0.2, 0.2, 0.6])
 
     ### Verify content mutation weights
-    assert(django_chunk_tree_root.content_mutation_probability == 0.2)
-    assert(django_chunk_tree_root.get_lookup_chunk("endpoint").get_children()["endpoint0"].content_mutation_probability == 0.1)
+    assert(django_chunk_tree_root.content_mutation_weights == [0.25, 0.25, 0.25, 0.25])
+    assert(django_chunk_tree_root.get_lookup_chunk("endpoint").get_children()["endpoint0"].content_mutation_weights == [0.1, 0.5, 0.4, 0])
 
     ### Test get content
     endpoint_content = django_chunk_tree_root.get_lookup_chunk("endpoint").get_content()
