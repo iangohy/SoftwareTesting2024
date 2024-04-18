@@ -5,6 +5,7 @@ import logging
 import os
 import json
 import time
+import signal
 import hashlib
 from subprocess import Popen, PIPE, STDOUT
 from testdriver.utils import check_for_blacklist_phrase
@@ -18,7 +19,7 @@ class CoapTestDriver:
         self.server_url = "coap://127.0.0.1:5683"
         self.endpoints = ['/basic', '/storage', '/child', '/separate', '/etag', '/', '/big', '/encoding', '/advancedSeparate', '/void', '/advanced', '/long', '/xml']
         self.coap_dir = config.get("coap_dir")
-        self.coverage_mode = config.get("coverage_mode", "distance")
+        self.coverage_mode = config.get("coverage_mode", "hash")
         self.logger = logging.getLogger(__name__)
         self.log_folderpath = log_folderpath
     
@@ -71,13 +72,13 @@ class CoapTestDriver:
             mode='hash',
             test_number=None
         ):
-        
+                
         text_to_replace = {
             # endpoint should not need "/" in front
             "CODE":  code,
             "URL": endpoint,
             "PAYLOAD": input_data,
-            "ADDRESS": self.server_url
+            "TYPE": "0"
         }
 
         # Reads the current template file
@@ -100,33 +101,63 @@ class CoapTestDriver:
         if coverage:            
             command = "coverage2 run {}/coapserver.py -i 127.0.0.1 -p 5683".format(self.coap_dir)
             logger.info(f"Running command: {command}")
-            
             process_one = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)            
-            
+                
             command = f"python2 {self.coap_dir}/coap_test.py"
             logger.info(f"Running command: {command}")
-            
             process_two = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
             
-        #     # coverage_run.terminate()
-
-        #     # json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json'))
-        #     # await json_report.wait()
-
-        #     logging.info("Coverage run complete for {}".format(input_data))
-
-        #     logging.info("Is it interesting? {}".format(self.is_interesting(mode)))
-        # else:
-        #     # normal_run = await asyncio.create_subprocess_shell("python3 {}coapserver.py 127.0.0.1 -p 5683".format(self.coap_dir))
-        #     # request = Message(code=method_code, uri=url, payload=input_data.encode(), mtype=0, token=bytes("token",'UTF-8'))
-        #     # logging.debug(request.token)
-        #     # context = await Context.create_client_context()
-        #     # response = await context.request(request).response
-
-        #     # logging.info(response)
-
-        #     logging.info("Run complete for {}".format(input_data))
+            try:
+                if test_number is not None:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
+                else:
+                    filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
+                with open(filename, "w") as file:
+                    self.process_stdout(process_two, file)
+            except TestDriverCrashDetected as e:
+                logger.exception(e)
+                logger.error(f"Test driver crashed while running test case: {input_data}")
+                # TODO: determine return values on crash
+                # Failure true
+                return (True,False,{})
+            
+            
+            # WAIT FOR TEST CASE TO FINISH
+            while process_two.poll() is None:            
+                logger.info(f"Running")
+            
+            
+            logger.info(f"Not running")
+            os.killpg(os.getpgid(process_one.pid), signal.SIGTERM) 
+            
+            # WAIT FOR COAP SERVER TO END
+            while process_one.poll() is None:            
+                logger.info(f"Running")
+                
+            command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
+            logger.info(f"Running command: {command}")
+            Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+            
+            try:
+                is_interesting, cov_data = self.is_interesting(mode)
+            except Exception as e:
+                # Failure true
+                return (True, False, {})
+            logging.info("Coverage run complete for {}".format(text_to_replace))
+            logging.info("Is it interesting? {}".format(is_interesting))
+            
+            response = None
+            try:
+                with open("coap_fuzz.log") as f:
+                    response = {"status_code": f.readline()}
+            except FileNotFoundError:
+                time.sleep(0.2)
+                with open("coap_fuzz.log") as f:
+                    response = {"status_code": f.readline()}
+            response.update(cov_data)
+            
+            return (False, is_interesting, response)
 
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
@@ -154,7 +185,6 @@ class CoapTestDriver:
         else:
             logger.debug("Process exited with status 0")
             
-            
     def is_interesting(self, mode:str = 'hash'):
         # Opens the coverage JSON report
         try:
@@ -171,7 +201,7 @@ class CoapTestDriver:
         new_missing_lines = {}
         totalno_missing_lines = 0
         distance = 0
-
+        
         # Fetch the missing lines field from each file
         for file in coverage_data['files'].keys():
 
@@ -220,6 +250,7 @@ class CoapTestDriver:
                     f.write(json.dumps(current_missing_lines))
                     f.close()
             elif mode == 'hash' and 'path_history' in current_missing_lines:
+                
                 # Get a Path ID as a hashed version of the missing lines object
                 new_path_ID = hashlib.md5( json.dumps(new_missing_lines).encode() ).hexdigest()
 
@@ -237,7 +268,7 @@ class CoapTestDriver:
                         'path_history': path_history
                     }) )
                     f.close()
-
+                    
                 # Return the path ID regardless
                 return_object = { 'hash': new_path_ID }
             else:

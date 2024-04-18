@@ -17,15 +17,17 @@ class StatsCollector:
         self.logger = logging.getLogger(__name__)
         
     def add_teststats(self, test_generation_ns, test_run_ns, failed, is_interesting, is_interesting_stats):
-        test_stat = ({
-            "test_generation_ns": test_generation_ns,
-            "test_run_ns": test_run_ns,
-            "failed": failed,
-            "is_interesting": is_interesting,
-            "is_interesting_stats": is_interesting_stats["hash"] if self.mode == EnergyAssignmentMode.HASH else is_interesting_stats["dist"]
-        })
-        self.data.append(test_stat)
-        self.logger.info(f"Collected stats: {test_stat}")
+        # ONLY APPEND IF NOT FAILED
+        if not failed:
+            test_stat = ({
+                "test_generation_ns": test_generation_ns,
+                "test_run_ns": test_run_ns,
+                "failed": failed,
+                "is_interesting": is_interesting,
+                "is_interesting_stats": is_interesting_stats["hash"] if self.mode == EnergyAssignmentMode.HASH else is_interesting_stats["dist"]
+            })
+            self.data.append(test_stat)
+            self.logger.info(f"Collected stats: {test_stat}")
 
     def complete_fuzzing_cycle(self):
         self.fuzzing_cycles_completed += 1
