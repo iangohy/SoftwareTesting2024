@@ -17,10 +17,6 @@ class ChunkTreeGenerator:
         content_mutation_weights = [float(i) for i in self.config["root"].get('contentMutationWeights', "0.25 0.25 0.25 0.25").split(" ")]
         root = SChunk('root', chunk_content=None, removable=False, chunk_mutation_weights=chunk_mutation_weights, chunk_type=ChunkType.OBJECT, content_mutation_weights=content_mutation_weights)
         self.create_child_chunk(root, 'root', None, self.config.get('root', 'children'))
-=======
-        root = SChunk(0, 'root', None, True, {})
-        self.create_child_chunk(root, 'root', None, self.config['root']['children'])
->>>>>>> bf856e8 (update)
 
         return root
 
