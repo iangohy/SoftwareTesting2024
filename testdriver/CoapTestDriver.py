@@ -120,7 +120,7 @@ class CoapTestDriver:
                 logger.error(f"Test driver crashed while running test case: {input_data}")
                 # TODO: determine return values on crash
                 # Failure true
-                return (True,False,{})
+                return (True, False, {})
             
             
             # WAIT FOR TEST CASE TO FINISH
