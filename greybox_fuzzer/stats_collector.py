@@ -17,7 +17,6 @@ class StatsCollector:
         self.logger = logging.getLogger(__name__)
         
     def add_teststats(self, test_generation_ns, test_run_ns, failed, is_interesting, is_interesting_stats):
-        # ONLY APPEND IF NOT FAILED
         if not failed:
             test_stat = ({
                 "test_generation_ns": test_generation_ns,
@@ -26,8 +25,14 @@ class StatsCollector:
                 "is_interesting": is_interesting,
                 "is_interesting_stats": is_interesting_stats["hash"] if self.mode == EnergyAssignmentMode.HASH else is_interesting_stats["dist"]
             })
-            self.data.append(test_stat)
-            self.logger.info(f"Collected stats: {test_stat}")
+        else:
+            test_stat = ({
+                "test_generation_ns": test_generation_ns,
+                "test_run_ns": test_run_ns,
+                "failed": failed,
+            })
+        self.data.append(test_stat)
+        self.logger.info(f"Collected stats: {test_stat}")
 
     def complete_fuzzing_cycle(self):
         self.fuzzing_cycles_completed += 1
@@ -42,7 +47,8 @@ class StatsCollector:
 
     def log_current_stats(self):
         failures = sum(map(lambda x: x["failed"], self.data))
-        unique_states = set(map(lambda x: x["is_interesting_stats"], self.data))
+        non_failure_tests = filter(lambda x: not x["failed"], self.data)
+        unique_states = set(map(lambda x: x["is_interesting_stats"], non_failure_tests))
         stats = """
                     ______
                  .-'      `-.
@@ -116,7 +122,8 @@ class StatsCollector:
 
 
     def plot_is_interesting_stats(self):
-        interesting_metric = map(lambda x: x["is_interesting_stats"], self.data)
+        non_failure_tests = filter(lambda x: not x["failed"], self.data)
+        interesting_metric = map(lambda x: x["is_interesting_stats"], non_failure_tests)
         metric_set = set()
         cumulative_metric = []
         for i in interesting_metric:
@@ -129,7 +136,8 @@ class StatsCollector:
         plt.savefig(f"{self.log_folderpath}/interesting_stats.png")
 
     def plot_is_interesting(self):
-        interesting_metric = map(lambda x: x["is_interesting"], self.data)
+        non_failure_tests = filter(lambda x: not x["failed"], self.data)
+        interesting_metric = map(lambda x: x["is_interesting"], non_failure_tests)
         interesting_count = 0
         cumulative_interesting = []
         for i in interesting_metric:

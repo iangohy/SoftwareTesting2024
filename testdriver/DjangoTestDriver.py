@@ -133,7 +133,7 @@ class DjangoTestDriver:
                 logger.exception(e)
                 logger.error(f"Test driver crashed while running test case: {input_data}")
                 # TODO: determine return values on crash
-                return
+                return (True, None, None)
 
             is_interesting, cov_data = self.is_interesting(mode)
             logging.info("Coverage run complete for {}".format(text_to_replace))
