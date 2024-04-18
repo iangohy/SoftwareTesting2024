@@ -97,7 +97,7 @@ class SChunk:
     # (e.g run ASCIIMutations.FLIP_BIT 3 times followed by ASCIIMutations.DELETE 2 times) 
     def mutate_contents(self):
         if not self.children:
-            content_mutator = Mutator(self.chunk_content)
+            content_mutator = Mutator(None)
             for _ in range(random.randint(1, 20)):
                 mutation = random.choices(list(ASCIIMutations), self.content_mutation_weights)[0]
                 self.chunk_content = content_mutator.mutate_n_times_with_choice(string=self.chunk_content, ascii_mutation=mutation, n=random.randint(1, 10))
