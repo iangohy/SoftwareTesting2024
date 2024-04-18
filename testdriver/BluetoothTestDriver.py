@@ -28,7 +28,8 @@ class BluetoothTestDriver():
         except Exception as e:
             logging.info(f"An error occurred: {e}")
         
-    def run_coverage(self):
+    def run_coverage(self, mode='hash'):
+        # TODO implement modes
         command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}/lcov.info -q --rc lcov_branch_coverage=1"
         os.system(command)
         logging.info('[OK] Coverage Done')
@@ -49,9 +50,13 @@ class BluetoothTestDriver():
 
         response = None
         # TODO: add cleanup (delete temporary file)
-        with open("fuzz.log") as f:
+        with open("bluetooth_fuzz.log") as f:
             response = {"status_code": f.readline()}
-        response.update(cov_data)
+        response.update(cov_data) 
+        # {'hash': sth}
+        # TODO check if this is correct for is_interesting_states in stats_collector.py
+        # is_interesting_stats = {mode: cov_data}
+        # response.update(is_interesting_stats)
         return (False, is_interesting, response)
     
     def generate_code_with_test(self, chunk):
@@ -60,9 +65,9 @@ class BluetoothTestDriver():
             
         # Replace the target string
         for c in chunk.children:
-            
-            if chunk.children[c].chunk_name == "handle":
-                filedata = filedata.replace('|replace_handle|', chunk.children[c].get_content())
+            logger.info(f"Chunk children: {chunk.children[c]}")
+            if chunk.children[c].chunk_name == "handle~":
+                filedata = filedata.replace('|replace_handle|', str(chunk.children[c].get_content()))
             else:            
                 filedata = filedata.replace('|replace_byte|', str(chunk.children[c].get_content().encode()))
             
@@ -72,7 +77,7 @@ class BluetoothTestDriver():
         with open(f'{self.bluetooth_dir}/bluetooth_fuzz.py', 'w') as file:
             file.write(filedata)
     
-    def run_test(self, inputs, coverage: bool):        
+    def run_test(self, inputs, coverage: bool, test_number):        
         # Generate python file with inputs
         self.generate_code_with_test(inputs)
         
@@ -84,7 +89,12 @@ class BluetoothTestDriver():
             except Exception as e:
                 logger.info(f"ERROR: {e}")
         if coverage:
-            self.run_coverage(mode=self.coverage_mode)
+            Failure, is_interesting, information = self.run_coverage(mode=self.coverage_mode)
+            # TODO remove when coverage fixed
+            if not ('hash' in information):
+                information.update({'hash':"NOCOVERAGEPATHFOUND"})
+            logger.info(f"run_test return info: {information}")
+            return Failure, is_interesting, information
             # TODO: return coverage information?
         # # logger.info(f"Chunk Children: {chunk.children}")
         # is_interesting, cov_data = self.is_interesting(mode)
@@ -160,7 +170,7 @@ class BluetoothTestDriver():
 
         # Opens the coverage JSON report
         try:
-            f = open('lcov.info', 'r')
+            f = open('ble/lcov.info', 'r')
             lines = f.readlines()
             new_missing_branches, totalno_missing_branches = self.parse_lcov_lines(lines)
             f.close()
