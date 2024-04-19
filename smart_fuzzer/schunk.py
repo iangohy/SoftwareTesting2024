@@ -98,7 +98,7 @@ class SChunk:
     def mutate_contents(self):
         if not self.children:
             content_mutator = Mutator(None)
-            for _ in range(random.randint(1, 20)):
+            for _ in range(random.randint(1, 2)):
                 mutation = random.choices(list(ASCIIMutations), self.content_mutation_weights)[0]
                 self.chunk_content = content_mutator.mutate_n_times_with_choice(string=self.chunk_content, ascii_mutation=mutation, n=random.randint(1, 10))
 
@@ -109,8 +109,15 @@ class SChunk:
     
     def add_chunk(self, output):
         if (len(output) == 0):
-            return output
-        
+            # If no children, add new chunk
+            if self.type == ChunkType.KEYVALUE:
+                return [SChunk("key", "aaaaa", True), SChunk("value", "bbbbb")]
+            elif self.type == ChunkType.OBJECT:
+                child_key = SChunk("key", "aaaaa", True)
+                child_value = SChunk("value", "bbbbb")
+                return [SChunk("keyvalue", removable=True, children={"key": child_key, "value": child_value}, chunk_type=ChunkType.KEYVALUE)]
+            else:
+                return [SChunk("name", "aaaaa", True)]
         new_chunk = copy.deepcopy(random.choice(output))
         new_chunk[1].chunk_name = new_chunk[1].chunk_name + "~"
         position = random.randrange(0, len(self.children))
