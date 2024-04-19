@@ -18,6 +18,24 @@ import os
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
+
+def find_and_kill_processes(port):
+    try:
+        # Run the lsof command to find processes using the specified port
+        result = subprocess.run(['lsof', '-t', '-i', f':{port}'], capture_output=True, text=True, check=True)
+        # Extract process IDs
+        pids = result.stdout.splitlines()
+        if pids:
+            logger.info(f"Found processes on port {port}: {pids}")
+            # Kill the processes
+            for pid in pids:
+                subprocess.run(['kill', pid])
+                # os.kill(int(pid), 2)
+                logger.info(f"Killed process {pid} using port {port}")
+        else:
+            logger.info(f"No processes found running on port {port}")
+    except Exception as e:
+        logger.info("Error")
     
 class TargetEventsListener(Device.Listener):
 
@@ -101,8 +119,10 @@ class TargetEventsListener(Device.Listener):
             logger.info("==================================")
             logger.info(target)
             logger.info(attributes[i])
-            if attributes[i].handle == |replace_handle|:
-                response_write = await self.write_target(target, attributes[i], |replace_byte|)
+            # if attributes[i].handle == |replace_handle|:
+            if attributes[i].handle == 37:
+                # response_write = await self.write_target(target, attributes[i], [|replace_byte|])
+                response_write = await self.write_target(target, attributes[i], [0x0037])
                 response_read = await self.read_target(target, attributes[i])
                 logger.info("response_write:"+response_write)
                 logger.info("response_read:"+response_read)
@@ -114,27 +134,13 @@ class TargetEventsListener(Device.Listener):
         # ---------------------------------------------------
 
 def run_target():
-    # running this function will generate flash.bin and sometime modify build folder
     os.chdir("|bluetooth_dir|")
     command = "GCOV_PREFIX=$(pwd) GCOV_PREFIX_STRIP=3 ./zephyr.exe --bt-dev=127.0.0.1:9000"
-    Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+    
+    # Open a new terminal window and execute the command
+    p = subprocess.Popen(command, shell=True)
+    return p
 
-def find_and_kill_processes(port):
-    try:
-        # Run the lsof command to find processes using the specified port
-        result = subprocess.run(['lsof', '-t', '-i', f':{port}'], capture_output=True, text=True, check=True)
-        # Extract process IDs
-        pids = result.stdout.splitlines()
-        if pids:
-            logger.info(f"Found processes on port {port}: {pids}")
-            # Kill the processes
-            for pid in pids:
-                subprocess.run(['kill', pid])
-                logger.info(f"Killed process {pid} using port {port}")
-        else:
-            logger.info(f"No processes found running on port {port}")
-    except subprocess.CalledProcessError as e:
-        logger.info("Error")
 
 async def run_controller():
     logger.info('>>> Waiting connection to HCI...')
@@ -164,8 +170,9 @@ async def run_controller():
         await device.start_scanning() # this calls "on_advertisement"
 
         logger.info('Waiting Advertisment from BLE Target')
+        
         # initialing target
-        run_target()
+        p = run_target()
         
         while device.listener.got_advertisement is False:
             await asyncio.sleep(0.5)
@@ -177,6 +184,7 @@ async def run_controller():
         # Start BLE connection here
         logger.info(f'=== Connecting to {target_address}...')
         await device.connect(target_address) # this calls "on_connection"
+        
         
         # Wait in an infinite loop
         await hci_source.wait_for_termination()
