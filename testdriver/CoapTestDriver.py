@@ -133,9 +133,13 @@ class CoapTestDriver:
             process_one.wait()
             
             path_to_coverage = os.getcwd()+'/.coverage'
+
+            is_interesting = False
+            cov_data = {}
+            response = None
             
             if os.path.exists(path_to_coverage):
-                logging.info("Coverage report found at: {}".format(path_to_coverage))
+                logging.debug("Coverage report found at: {}".format(path_to_coverage))
                 command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
                 logger.debug(f"Running command: {command}")
                 process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
@@ -150,18 +154,18 @@ class CoapTestDriver:
                     return (True, False, {})
                 logging.info("Coverage run complete for {}".format(text_to_replace))
                 logging.info("Is it interesting? {}".format(is_interesting))
+            
+                try:
+                    with open("coap_fuzz.log") as f:
+                        response = {"status_code": f.readline()}
+                except FileNotFoundError:
+                    time.sleep(0.2)
+                    with open("coap_fuzz.log") as f:
+                        response = {"status_code": f.readline()}
+                response.update(cov_data)
+
             else:
                 logging.error("Coverage output not found!")
-            
-            response = None
-            try:
-                with open("coap_fuzz.log") as f:
-                    response = {"status_code": f.readline()}
-            except FileNotFoundError:
-                time.sleep(0.2)
-                with open("coap_fuzz.log") as f:
-                    response = {"status_code": f.readline()}
-            response.update(cov_data)
             
             return (False, is_interesting, response)
 
