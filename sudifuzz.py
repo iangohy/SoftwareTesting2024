@@ -12,7 +12,7 @@ from smart_fuzzer.chunkTreeGenerator import ChunkTreeGenerator
 
 REQUIRED_KEYS = {
     "target_application": ["name", "log_folderpath", "test_driver", "coverage", "seed_input_files"],
-    "main_fuzzer": ["max_fuzz_cycles", 'energy_strat']
+    "main_fuzzer": ["max_fuzz_cycles", "energy_strat"]
 }
 
 logger = logging.getLogger(__name__)
@@ -97,6 +97,8 @@ logger.info(f"Initial seedQ: {seedQ}")
 max_fuzz_cycles = config.getint("main_fuzzer", "max_fuzz_cycles")
 energy_strat = config.get("main_fuzzer", "energy_strat")
 logger.debug(f"max_fuzz_cycles={max_fuzz_cycles}, energy_strat={energy_strat}")
+chunk_mutation_enable = config["main_fuzzer"].getboolean("chunk_mutation_enable", True)
+content_mutation_enable = config["main_fuzzer"].getboolean("content_mutation_enable", True)
 try:
     stats_collector = StatsCollector(log_folderpath, mode=EnergyAssignmentMode[energy_strat.upper()])
     main_fuzzer = MainFuzzer(
@@ -105,6 +107,8 @@ try:
         stats_collector,
         max_fuzz_cycles=max_fuzz_cycles,
         energy_strat=energy_strat,
+        chunk_mutation_enable=chunk_mutation_enable,
+        content_mutation_enable=content_mutation_enable
     )
     main_fuzzer.fuzz()
 except KeyboardInterrupt:
