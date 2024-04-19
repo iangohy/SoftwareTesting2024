@@ -125,16 +125,12 @@ class CoapTestDriver:
             
             
             # WAIT FOR TEST CASE TO FINISH
-            while process_two.poll() is None:            
-                logger.debug(f"Running")
+            process_two.wait()
             
-            
-            logger.debug(f"Not running")
             os.killpg(os.getpgid(process_one.pid), signal.SIGTERM) 
             
             # WAIT FOR COAP SERVER TO END
-            while process_one.poll() is None:            
-                logger.debug(f"Running")
+            process_one.wait()
             
             path_to_coverage = os.getcwd()+'/.coverage'
             
@@ -145,8 +141,7 @@ class CoapTestDriver:
                 process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
                 
                 # WAIT FOR COVERAGE OUTPUT TO FINISH
-                while process_three.poll() is None:            
-                    logger.debug(f"Running")
+                process_three.wait()
 
                 try:
                     is_interesting, cov_data = self.is_interesting(mode)
