@@ -151,7 +151,7 @@ async def run_controller():
 
 
         # Create our own device (tester central) to manage the host BLE stack
-        device = Device.from_config_file('|bluetooth_dir|tester_config.json')
+        device = Device.from_config_file('|bluetooth_dir|/tester_config.json')
         # Create a host for the second controller
         device.host = Host() 
         # Create a second controller for connection with this test driver (Bumble)
