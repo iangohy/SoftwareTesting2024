@@ -126,18 +126,18 @@ class CoapTestDriver:
             
             # WAIT FOR TEST CASE TO FINISH
             while process_two.poll() is None:            
-                logger.info(f"Running")
+                logger.debug(f"Running")
             
             
-            logger.info(f"Not running")
+            logger.debug(f"Not running")
             os.killpg(os.getpgid(process_one.pid), signal.SIGTERM) 
             
             # WAIT FOR COAP SERVER TO END
             while process_one.poll() is None:            
-                logger.info(f"Running")
+                logger.debug(f"Running")
                 
             command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
-            logger.info(f"Running command: {command}")
+            logger.debug(f"Running command: {command}")
             Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
             try:
@@ -173,7 +173,7 @@ class CoapTestDriver:
             # line = non_block_read(process.stdout)
             line = process.stdout.readline()
             if line:
-                logger.info(f"OUTPUT: {line}")
+                logger.debug(f"OUTPUT: {line}")
                 if logfile:
                     logfile.write(line)
                 check_for_blacklist_phrase(line, blacklist)
