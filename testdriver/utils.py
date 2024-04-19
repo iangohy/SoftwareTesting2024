@@ -1,4 +1,4 @@
-import logging
+import logging, os
 
 from testdriver.custom_exceptions import TestDriverCrashDetected
 
@@ -28,3 +28,16 @@ def sanitize_input(input_str:str):
             sanitized_string += char
 
     return sanitized_string
+
+def clean_gen_files():
+    files = [
+        '/testdriver/missing_branches.json',
+        '/testdriver/output.json',
+        '/testdriver/test_case.py',
+    ]
+
+    logging.info("Cleaning directory of old generated files.")
+
+    for file in files:
+        if os.path.exists(os.getcwd()+file):
+            os.remove(os.getcwd()+file)

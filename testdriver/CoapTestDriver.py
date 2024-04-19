@@ -8,7 +8,7 @@ import time
 import signal
 import hashlib
 from subprocess import Popen, PIPE, STDOUT
-from testdriver.utils import check_for_blacklist_phrase
+from testdriver.utils import check_for_blacklist_phrase, sanitize_input, clean_gen_files
 from testdriver.custom_exceptions import TestDriverCrashDetected
 
 from smart_fuzzer.schunk import SChunk
@@ -22,6 +22,7 @@ class CoapTestDriver:
         self.coverage_mode = config.get("coverage_mode", "hash")
         self.logger = logging.getLogger(__name__)
         self.log_folderpath = log_folderpath
+        clean_gen_files()
     
     # oracle to pass in 
     def run_test(self, chunk: SChunk, coverage, test_number):
@@ -75,10 +76,10 @@ class CoapTestDriver:
                 
         text_to_replace = {
             # endpoint should not need "/" in front
-            "CODE":  code,
-            "URL": endpoint,
-            "PAYLOAD": input_data,
-            "TYPE": "0"
+            "CODE":     sanitize_input(code),
+            "URL":      sanitize_input(endpoint),
+            "PAYLOAD":  sanitize_input(input_data),
+            "TYPE":     "0"
         }
 
         # Reads the current template file
@@ -223,8 +224,14 @@ class CoapTestDriver:
                 logging.error("Cannot open missing lines file")
             
             if mode == 'distance' and 'path_history' not in current_missing_lines:
+                # If it finds that the number of files with missing branches is less than the current number
+                # That means we have fewer missing branches to cover
+                # That is interesting!
+                if len(new_missing_lines.keys()) < len(current_missing_lines.keys()):
+                    is_interesting_result = True
+
                 # For each file index within the missing branch store
-                for i in range(len(current_missing_lines.keys())):
+                for i in range( min( len(current_missing_lines.keys()), len(new_missing_lines.keys()) ) ):
 
                     file = list(current_missing_lines.keys())[i]
 
@@ -249,6 +256,9 @@ class CoapTestDriver:
                     f = open(os.getcwd()+'/testdriver/missing_lines.json', 'w')
                     f.write(json.dumps(current_missing_lines))
                     f.close()
+
+                    return_object = { 'dist': distance }
+
             elif mode == 'hash' and 'path_history' in current_missing_lines:
                 
                 # Get a Path ID as a hashed version of the missing lines object
@@ -302,12 +312,6 @@ class CoapTestDriver:
 
     def find_common_elements(self, list1, list2):
         return [element for element in list1 if element in list2]
-
-    def clean(self):
-        if os.path.exists(os.getcwd()+'/testdriver/missing_lines.json'):
-            os.remove(os.getcwd()+'/testdriver/missing_lines.json')
-        else:
-            logging.error("The directory is already clean")
 
     def analyze_results(self, response):
         # Analyze the results of the server response

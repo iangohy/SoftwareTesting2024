@@ -10,7 +10,7 @@ import os
 import json
 import hashlib
 import glob
-from testdriver.utils import sanitize_input
+from testdriver.utils import sanitize_input, clean_gen_files
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
@@ -19,6 +19,7 @@ class BluetoothTestDriver():
     def __init__(self, config):
         self.bluetooth_dir = config.get("bluetooth_dir")
         self.coverage_mode = config.get("coverage_mode", "distance")
+        clean_gen_files()
         
     def move_flash_bin(self):
         try:
@@ -212,8 +213,14 @@ class BluetoothTestDriver():
                 logging.error("Cannot open missing branch file")
 
             if mode == 'distance' and 'path_history' not in current_missing_branches:
+                # If it finds that the number of files with missing branches is less than the current number
+                # That means we have fewer missing branches to cover
+                # That is interesting!
+                if len(new_missing_branches.keys()) < len(current_missing_branches.keys()):
+                    is_interesting_result = True
+
                 # For each file index within the missing branch store
-                for i in range(len(current_missing_branches.keys())):
+                for i in range( min( len(current_missing_branches.keys()), len(new_missing_branches.keys()) ) ):
 
                     file = list(current_missing_branches.keys())[i]
 

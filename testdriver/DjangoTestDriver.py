@@ -9,8 +9,7 @@ import time
 
 from smart_fuzzer.schunk import SChunk
 from testdriver.custom_exceptions import TestDriverCrashDetected
-from testdriver.utils import check_for_blacklist_phrase
-from testdriver.utils import sanitize_input
+from testdriver.utils import check_for_blacklist_phrase, sanitize_input, clean_gen_files
 logger = logging.getLogger(__name__)
 
 class DjangoTestDriver:
@@ -21,6 +20,7 @@ class DjangoTestDriver:
         self.django_dir = config.get("django_dir")
         self.coverage_mode = config.get("coverage_mode", "distance")
         self.log_folderpath = log_folderpath
+        clean_gen_files()
 
     # Oracle will pass in chunk as test input
     def run_test(self, chunk: SChunk, coverage, test_number):
@@ -289,12 +289,6 @@ class DjangoTestDriver:
 
     def find_common_elements(self, list1, list2):
         return [element for element in list1 if element in list2]
-
-    def clean(self):
-        if os.path.exists(os.getcwd()+'/testdriver/missing_branches.json'):
-            os.remove(os.getcwd()+'/testdriver/missing_branches.json')
-        else:
-            logging.error("The directory is already clean")
                 
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
