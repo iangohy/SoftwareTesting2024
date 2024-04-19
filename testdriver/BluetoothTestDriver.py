@@ -9,6 +9,8 @@ import shutil
 import os
 import json
 import hashlib
+import glob
+from testdriver.utils import sanitize_input
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
@@ -59,17 +61,35 @@ class BluetoothTestDriver():
         # response.update(is_interesting_stats)
         return (False, is_interesting, response)
     
+    def find_and_delete_gcda(self, directory):
+        """
+        Recursively find .gcda files within directories and delete them if present.
+        """
+        # Check if .gcda files exist in the current directory
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            if os.path.isfile(item_path) and item.endswith('.gcda'):
+                os.remove(item_path)
+                print(f"Deleted: {item_path}")
+            elif os.path.isdir(item_path):
+                self.find_and_delete_gcda(item_path)
+
+    
     def generate_code_with_test(self, chunk):
+        # clean gcda files
+        dir_name = os.getcwd() + "/" + self.bluetooth_dir + "/build/zephyr"
+        self.find_and_delete_gcda(dir_name)
+        
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
             
         # Replace the target string
         for c in chunk.children:
-            logger.info(f"Chunk children: {chunk.children[c]}")
-            if chunk.children[c].chunk_name == "handle~":
-                filedata = filedata.replace('|replace_handle|', str(chunk.children[c].get_content()))
+            logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
+            if chunk.children[c].chunk_name == "handle":
+                filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
             else:            
-                filedata = filedata.replace('|replace_byte|', str(chunk.children[c].get_content().encode()))
+                filedata = filedata.replace('|replace_byte|', sanitize_input(str(chunk.children[c].chunk_content.encode())))
             
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
