@@ -180,12 +180,17 @@ class CoapTestDriver:
             #     raise KeyboardInterrupt()
             os.set_blocking(process.stdout.fileno(), False)
             # line = non_block_read(process.stdout)
-            line = process.stdout.readline()
-            if line:
-                logger.debug(f"OUTPUT: {line}")
+            try:
+                line = process.stdout.readline()
+                if line:
+                    logger.debug(f"OUTPUT: {line}")
+                    if logfile:
+                        logfile.write(line)
+                    check_for_blacklist_phrase(line, blacklist)
+            except:
+                logger.error("Unable to parse stdout")
                 if logfile:
-                    logfile.write(line)
-                check_for_blacklist_phrase(line, blacklist)
+                        logfile.write("Unable to parse stdout")
             if process.poll() is not None:
                 break
 
