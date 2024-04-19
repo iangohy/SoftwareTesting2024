@@ -127,7 +127,7 @@ class CoapTestDriver:
             # WAIT FOR TEST CASE TO FINISH
             process_two.wait()
             
-            process_one.send_signal(signal.SIGINT)
+            os.killpg(os.getpgid(process_one.pid), signal.SIGINT) 
             
             # WAIT FOR COAP SERVER TO END
             process_one.wait()
