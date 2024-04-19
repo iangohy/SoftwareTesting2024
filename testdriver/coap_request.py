@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 from coapthon.messages.request import Request
 from coapthon.client.helperclient import HelperClient
 import logging
-
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,7 @@ def test_case():
             with open("coap_fuzz.log", "w") as f:
                 f.write(str(response))
                 
-    except:        
-        client.stop()
+    except:
         logger.info("Error")
         
     
