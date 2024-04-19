@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE, STDOUT
 from binascii import hexlify
 
 import subprocess
+import time
 from bumble.device import Device, Peer
 from bumble.host import Host
 from bumble.gatt import show_services
@@ -17,7 +18,7 @@ import logging
 import os
 
 logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 def find_and_kill_processes(port):
     try:
@@ -137,9 +138,11 @@ def run_target():
     os.chdir("|bluetooth_dir|")
     command = "GCOV_PREFIX=$(pwd) GCOV_PREFIX_STRIP=3 ./zephyr.exe --bt-dev=127.0.0.1:9000"
     
+    logger.info("running target")
     # Open a new terminal window and execute the command
-    p = subprocess.Popen(command, shell=True)
-    return p
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    
+    return process
 
 
 async def run_controller():
@@ -172,7 +175,7 @@ async def run_controller():
         logger.info('Waiting Advertisment from BLE Target')
         
         # initialing target
-        p = run_target()
+        process = run_target()
         
         while device.listener.got_advertisement is False:
             await asyncio.sleep(0.5)
@@ -185,6 +188,16 @@ async def run_controller():
         logger.info(f'=== Connecting to {target_address}...')
         await device.connect(target_address) # this calls "on_connection"
         
+        while process.poll() is None:  # Check if the subprocess is still running
+            # Read subprocess output
+            output = process.stdout.readline().decode().strip()
+            
+            output = output.split(" ")
+            
+            logger.info("First ---   " + output[0] )
+            if output[0] == "ASSERTION":
+                find_and_kill_processes(9000)
+
         
         # Wait in an infinite loop
         await hci_source.wait_for_termination()

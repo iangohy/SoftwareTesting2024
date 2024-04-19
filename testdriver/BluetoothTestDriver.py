@@ -78,7 +78,7 @@ class BluetoothTestDriver():
     
     def generate_code_with_test(self, chunk):
         # clean gcda files
-        dir_name = os.getcwd() + "/" + self.bluetooth_dir + "/build/zephyr"
+        dir_name = os.getcwd() + "/" + self.bluetooth_dir + "/build"
         self.find_and_delete_gcda(dir_name)
         
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
