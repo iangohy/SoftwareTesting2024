@@ -135,18 +135,28 @@ class CoapTestDriver:
             # WAIT FOR COAP SERVER TO END
             while process_one.poll() is None:            
                 logger.debug(f"Running")
-                
-            command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
-            logger.debug(f"Running command: {command}")
-            Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
-            try:
-                is_interesting, cov_data = self.is_interesting(mode)
-            except Exception as e:
-                # Failure true
-                return (True, False, {})
-            logging.info("Coverage run complete for {}".format(text_to_replace))
-            logging.info("Is it interesting? {}".format(is_interesting))
+            path_to_coverage = os.getcwd()+'/.coverage'
+            
+            if os.path.exists(path_to_coverage):
+                logging.info("Coverage report found at: {}".format(path_to_coverage))
+                command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
+                logger.debug(f"Running command: {command}")
+                process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+                
+                # WAIT FOR COVERAGE OUTPUT TO FINISH
+                while process_three.poll() is None:            
+                    logger.debug(f"Running")
+
+                try:
+                    is_interesting, cov_data = self.is_interesting(mode)
+                except Exception as e:
+                    # Failure true
+                    return (True, False, {})
+                logging.info("Coverage run complete for {}".format(text_to_replace))
+                logging.info("Is it interesting? {}".format(is_interesting))
+            else:
+                logging.error("Coverage output not found!")
             
             response = None
             try:
@@ -192,8 +202,8 @@ class CoapTestDriver:
             f = open(os.getcwd()+'/testdriver/output.json', 'r')
             coverage_data = json.loads(f.read())
             f.close()
-        except Exception:
-            logging.error("Cannot open output file")
+        except Exception as e:
+            logging.error("Cannot open output file: {}".format(e))
 
         is_interesting_result = False
         return_object = {}
