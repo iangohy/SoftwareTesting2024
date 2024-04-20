@@ -7,6 +7,7 @@ from subprocess import Popen, PIPE, STDOUT
 import logging
 import shutil
 import os
+import binascii
 import json
 import hashlib
 import glob
@@ -90,8 +91,9 @@ class BluetoothTestDriver():
             if chunk.children[c].chunk_name == "handle":
                 filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
             else:            
-                filedata = filedata.replace('|replace_byte|', sanitize_input(str(chunk.children[c].chunk_content.encode())))
-            
+                hex_input = binascii.hexlify(chunk.children[c].chunk_content.encode())
+                filedata = filedata.replace('|replace_byte|', str(hex_input))
+              
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
