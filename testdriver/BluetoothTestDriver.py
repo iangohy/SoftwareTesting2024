@@ -10,7 +10,7 @@ import os
 import binascii
 import json
 import hashlib
-import glob
+from smart_fuzzer.schunk import SChunk
 from testdriver.utils import sanitize_input, clean_gen_files
 
 logger = logging.getLogger(__name__)
@@ -77,19 +77,23 @@ class BluetoothTestDriver():
                 self.find_and_delete_gcda(item_path)
 
     
-    def generate_code_with_test(self, chunk):
-        # clean gcda files
+    def generate_code_with_test(self, handle, payload):
+        
+        # CLEAN gcda files
         dir_name = self.bluetooth_dir + "/build"
         self.find_and_delete_gcda(dir_name)
         
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
-            
-        handle = chunk.get_lookup_chunk("handle").get_content()
-        payload = chunk.get_lookup_chunk("payload").get_content()
 
         filedata = filedata.replace('|replace_handle|', sanitize_input(str(handle)))
-        filedata = filedata.replace('|replace_byte|', sanitize_input(str(payload.encode())))
+        
+        #  convert string to bytes
+        input_bytes = payload.encode()
+        #  covert bytes to hexadecimal 
+        hex_input = binascii.hexlify(input_bytes).decode()
+        filedata = filedata.replace('|replace_byte|', "0x"+str(hex_input))
+        
         # Replace the target string
         # for c in chunk.children:
         #     logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
@@ -104,9 +108,15 @@ class BluetoothTestDriver():
         with open(f'{self.bluetooth_dir}/bluetooth_fuzz.py', 'w') as file:
             file.write(filedata)
     
-    def run_test(self, inputs, coverage: bool, test_number):        
+    def run_test(self, chunk: SChunk, coverage, test_number):  
+          
+        handle = chunk.get_lookup_chunk("handle").get_content()
+        payload = chunk.get_lookup_chunk("payload").get_content()
+        logger.info(f"handle: {handle}")
+        logger.info(f"payload: {payload}")
+        
         # Generate python file with inputs
-        self.generate_code_with_test(inputs)
+        self.generate_code_with_test(handle, payload)
         
         command = f"python3 {self.bluetooth_dir}/bluetooth_fuzz.py"
         with open("bluetooth_fuzz.log", "a") as logfile:
