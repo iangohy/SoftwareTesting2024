@@ -3,23 +3,32 @@
 # 50.053 Software Testing and Verification
 
 ## Running (Docker)
-With docker compose,
 ```
-docker compose up --build
-```
-
-Without docker compose,
-```
+# Django
 docker build -t sudifuzz .
+## Unix
+docker run -v ./logs/:/sudifuzz/logs sudifuzz sudifuzz_config_django_example.ini
+## Windows
+docker run -v "$(PWD)/logs:/sudifuzz/logs" sudifuzz sudifuzz_config_django_example.ini
 
-# Default (Django Example)
-docker run -v ./logs/:/sudifuzz/logs sudifuzz
-# CoAP Example
+# CoAP
+docker build -t sudifuzz .
+## Unix
 docker run -v ./logs/:/sudifuzz/logs sudifuzz sudifuzz_config_coap_example.ini
+## Windows
+docker run -v "$(PWD)/logs:/sudifuzz/logs" sudifuzz sudifuzz_config_coap_example.ini
+
+# BLE
+docker build -t sudifuzz_ubuntu -f Dockerfile_ubuntu .
+## Unix
+docker run -v ./logs/:/sudifuzz/logs sudifuzz_ubuntu sudifuzz_config_bt_example.ini
+## Windows
+docker run -v "$(PWD)/logs:/sudifuzz/logs" sudifuzz_ubuntu sudifuzz_config_bt_example.ini
 ```
+
 ## Running (without Docker)
 ```
-python sudifuzz.py --config sudifuzz_config_example.ini
+python sudifuzz.py --config sudifuzz_config_<target_app>_example.ini
 ```
 
 ## Development Notes

@@ -5,31 +5,24 @@
 import logging
 from subprocess import Popen, PIPE, STDOUT
 import logging
-import shutil
 import os
+import binascii
 import json
 import hashlib
-import glob
+from smart_fuzzer.schunk import SChunk
 from testdriver.utils import sanitize_input, clean_gen_files
+from testdriver.custom_exceptions import TestDriverCrashDetected
+import time
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 
 class BluetoothTestDriver():
-    def __init__(self, config):
+    def __init__(self, config, log_folderpath):
         self.bluetooth_dir = config.get("bluetooth_dir")
         self.coverage_mode = config.get("coverage_mode", "distance")
+        self.log_folderpath = log_folderpath
         clean_gen_files()
-        
-    def move_flash_bin(self):
-        try:
-            shutil.copyfile("./flash.bin", self.bluetooth_dir+"/flash.bin")
-        except FileNotFoundError:
-            logging.info("File not found.")
-        except PermissionError:
-            logging.info("Permission denied.")
-        except Exception as e:
-            logging.info(f"An error occurred: {e}")
         
     def run_coverage(self, mode='hash'):
         # TODO implement modes
@@ -52,74 +45,83 @@ class BluetoothTestDriver():
         logging.info("Is it interesting? {}".format(is_interesting))
 
         response = None
+        
         # TODO: add cleanup (delete temporary file)
         with open("bluetooth_fuzz.log") as f:
             response = {"status_code": f.readline()}
         response.update(cov_data) 
-        # {'hash': sth}
-        # TODO check if this is correct for is_interesting_states in stats_collector.py
-        # is_interesting_stats = {mode: cov_data}
-        # response.update(is_interesting_stats)
+        
         return (False, is_interesting, response)
     
     def find_and_delete_gcda(self, directory):
         """
         Recursively find .gcda files within directories and delete them if present.
         """
+        
+        logger.debug("Deleting GCDA Files")
         # Check if .gcda files exist in the current directory
         for item in os.listdir(directory):
             item_path = os.path.join(directory, item)
             if os.path.isfile(item_path) and item.endswith('.gcda'):
                 os.remove(item_path)
-                print(f"Deleted: {item_path}")
             elif os.path.isdir(item_path):
                 self.find_and_delete_gcda(item_path)
 
     
-    def generate_code_with_test(self, chunk):
-        # clean gcda files
-        dir_name = os.getcwd() + "/" + self.bluetooth_dir + "/build"
+    def generate_code_with_test(self, handle, payload):
+        # CLEAN gcda files
+        dir_name = self.bluetooth_dir + "/build"
         self.find_and_delete_gcda(dir_name)
         
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
-            
-        # Replace the target string
-        for c in chunk.children:
-            logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
-            if chunk.children[c].chunk_name == "handle":
-                filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
-            else:            
-                filedata = filedata.replace('|replace_byte|', sanitize_input(str(chunk.children[c].chunk_content.encode())))
-            
+
+        filedata = filedata.replace('|replace_handle|', sanitize_input(str(handle)))
+        
+        #  convert string to bytes
+        input_bytes = payload.encode()
+        #  covert bytes to hexadecimal 
+        hex_input = binascii.hexlify(input_bytes).decode()
+        filedata = filedata.replace('|replace_byte|', "0x"+str(hex_input))
+        
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
         with open(f'{self.bluetooth_dir}/bluetooth_fuzz.py', 'w') as file:
             file.write(filedata)
     
-    def run_test(self, inputs, coverage: bool, test_number):        
+    def run_test(self, chunk: SChunk, coverage, test_number):  
+          
+        handle = chunk.get_lookup_chunk("handle").get_content()
+        payload = chunk.get_lookup_chunk("payload").get_content()
+        logger.info(f"handle: {handle}")
+        logger.info(f"payload: {payload}")
+        
         # Generate python file with inputs
-        self.generate_code_with_test(inputs)
+        self.generate_code_with_test(handle, payload)
         
         command = f"python3 {self.bluetooth_dir}/bluetooth_fuzz.py"
-        with open("bluetooth_fuzz.log", "a") as logfile:
-            try:
-                process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
-                self.process_stdout(process, logfile)
-            except Exception as e:
-                logger.info(f"ERROR: {e}")
+        process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+        try:
+            if test_number is not None:
+                filename = f"{self.log_folderpath}/bluetooth_testdriver_{test_number}.log"
+            else:
+                filename = f"{self.log_folderpath}/bluetooth_testdriver_{int(time.time())}.log"
+            with open(filename, "w") as file:
+                self.process_stdout(process, file)
+        except TestDriverCrashDetected as e:
+            logger.exception(e)
+            logger.error(f"Test driver crashed while running test case: {handle}, {payload}")
+            # TODO: determine return values on crash
+            # Failure true
+            return (True, False, {})
+        
         if coverage:
             Failure, is_interesting, information = self.run_coverage(mode=self.coverage_mode)
-            # TODO remove when coverage fixed
-            if not ('hash' in information):
-                information.update({'hash':"NOCOVERAGEPATHFOUND"})
+            
             logger.info(f"run_test return info: {information}")
             return Failure, is_interesting, information
-            # TODO: return coverage information?
-        # # logger.info(f"Chunk Children: {chunk.children}")
-        # is_interesting, cov_data = self.is_interesting(mode)
-        # return (False, is_interesting, response)
+        
     
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
@@ -131,8 +133,6 @@ class BluetoothTestDriver():
             if process.poll() is not None:
                 break 
         
-        # move flash.bin to bluetooth folder
-        # self.move_flash_bin()
         logger.info("===END===")
     
     def analyze_results(self, response):

@@ -1,7 +1,0 @@
-name: sudifuzz
-services:
-    sudifuzz:
-        image: sudifuzz
-        build: .
-        volumes:
-          - ./logs/:/sudifuzz/logs

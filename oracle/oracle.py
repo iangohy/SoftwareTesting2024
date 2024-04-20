@@ -26,7 +26,7 @@ class Oracle:
         elif config_testdriver == "CoapTestDriver":
             self.test_driver = CoapTestDriver(config["coap_testdriver"], self.log_folderpath)
         elif config_testdriver == "BluetoothTestDriver":
-            self.test_driver = BluetoothTestDriver(config["bluetooth_testdriver"])
+            self.test_driver = BluetoothTestDriver(config["bluetooth_testdriver"], self.log_folderpath)
         else:
             raise RuntimeError(f"Invalid test driver constant [{config_testdriver}]")
 
