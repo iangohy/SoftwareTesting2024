@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class BluetoothTestDriver():
     def __init__(self, config, log_folderpath):
         self.bluetooth_dir = config.get("bluetooth_dir")
-        self.coverage_mode = config.get("coverage_mode", "distance")
+        self.coverage_mode = config.get("coverage_mode", "hash")
         self.log_folderpath = log_folderpath
         clean_gen_files()
         
@@ -44,14 +44,14 @@ class BluetoothTestDriver():
         is_interesting, cov_data = self.is_interesting(mode)
         logging.info("Is it interesting? {}".format(is_interesting))
 
-        response = None
+        # response = None
         
         # TODO: add cleanup (delete temporary file)
-        with open("bluetooth_fuzz.log") as f:
-            response = {"status_code": f.readline()}
-        response.update(cov_data) 
+        # with open("bluetooth_fuzz.log") as f:
+        #     response = {"status_code": f.readline()}
+        # response.update(cov_data) 
         
-        return (False, is_interesting, response)
+        return (False, is_interesting, cov_data)
     
     def find_and_delete_gcda(self, directory):
         """

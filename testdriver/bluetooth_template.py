@@ -18,7 +18,7 @@ import logging
 import os
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def find_and_kill_processes(port):
     logger.debug("Killing processes")
