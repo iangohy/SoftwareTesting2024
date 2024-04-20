@@ -112,7 +112,6 @@ class BluetoothTestDriver():
         except TestDriverCrashDetected as e:
             logger.exception(e)
             logger.error(f"Test driver crashed while running test case: {handle}, {payload}")
-            # TODO: determine return values on crash
             # Failure true
             return (True, False, {})
         
@@ -191,7 +190,7 @@ class BluetoothTestDriver():
 
         # Opens the coverage JSON report
         try:
-            f = open('ble/lcov.info', 'r')
+            f = open('/ble/lcov.info', 'r')
             lines = f.readlines()
             new_missing_branches, totalno_missing_branches = self.parse_lcov_lines(lines)
             f.close()
