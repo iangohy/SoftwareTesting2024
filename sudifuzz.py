@@ -120,7 +120,7 @@ finally:
     stats_collector.plot_crashes()
     stats_collector.plot_is_interesting()
     stats_collector.plot_is_interesting_stats()
-
+    stats_collector.save_stats()
 end_time = time.time()
 exited_string = "\n===========\n" + \
     "Sudifuzz exited\n" + \
