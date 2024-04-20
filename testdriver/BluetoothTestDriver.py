@@ -79,21 +79,25 @@ class BluetoothTestDriver():
     
     def generate_code_with_test(self, chunk):
         # clean gcda files
-        dir_name = os.getcwd() + "/" + self.bluetooth_dir + "/build"
+        dir_name = self.bluetooth_dir + "/build"
         self.find_and_delete_gcda(dir_name)
         
         with open(os.getcwd()+'/testdriver/bluetooth_template.py', 'r') as file:
             filedata = file.read()
             
+        handle = chunk.get_lookup_chunk("handle").get_content()
+        payload = chunk.get_lookup_chunk("payload").get_content()
+
+        filedata = filedata.replace('|replace_handle|', sanitize_input(str(handle)))
+        filedata = filedata.replace('|replace_byte|', sanitize_input(str(payload.encode())))
         # Replace the target string
-        for c in chunk.children:
-            logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
-            if chunk.children[c].chunk_name == "handle":
-                filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
-            elif chunk.children[c].chunk_name == "payload":         
-                hex_input = binascii.hexlify(chunk.children[c].chunk_content.encode())
-                filedata = filedata.replace('|replace_byte|', str(hex_input))
-              
+        # for c in chunk.children:
+        #     logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
+        #     if chunk.children[c].chunk_name == "handle":
+        #         filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
+        #     else:            
+        #         filedata = filedata.replace('|replace_byte|', sanitize_input(str(chunk.children[c].chunk_content.encode())))
+            
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
