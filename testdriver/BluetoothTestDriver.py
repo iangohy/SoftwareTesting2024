@@ -78,8 +78,7 @@ class BluetoothTestDriver():
 
     
     def generate_code_with_test(self, handle, payload):
-        
-        # CLEAN gcda files
+        # clean gcda files
         dir_name = self.bluetooth_dir + "/build"
         self.find_and_delete_gcda(dir_name)
         
@@ -127,15 +126,10 @@ class BluetoothTestDriver():
                 logger.info(f"ERROR: {e}")
         if coverage:
             Failure, is_interesting, information = self.run_coverage(mode=self.coverage_mode)
-            # TODO remove when coverage fixed
-            if not ('hash' in information):
-                information.update({'hash':"NOCOVERAGEPATHFOUND"})
+            
             logger.info(f"run_test return info: {information}")
             return Failure, is_interesting, information
-            # TODO: return coverage information?
-        # # logger.info(f"Chunk Children: {chunk.children}")
-        # is_interesting, cov_data = self.is_interesting(mode)
-        # return (False, is_interesting, response)
+        
     
     def process_stdout(self, process: Popen, logfile):
         logger.info("Handling target application stdout and stderr")
