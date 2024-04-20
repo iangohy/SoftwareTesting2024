@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def find_and_kill_processes(port):
+    logger.debug("Killing processes")
     try:
         # Run the lsof command to find processes using the specified port
         result = subprocess.run(['lsof', '-t', '-i', f':{port}'], capture_output=True, text=True, check=True)
@@ -194,13 +195,13 @@ async def run_controller():
             logger.info("BluetoothFuzz zephyr:" + output)
             
             output = output.split(" ")
-            
+            logger.debug(f"output: {output[0]}")
             if output[0] == "ASSERTION":
                 find_and_kill_processes(9000)
 
         
         # Wait in an infinite loop
-        await hci_source.wait_for_termination()
+        # await hci_source.wait_for_termination()
         
 if __name__ == "__main__":         
     asyncio.run(run_controller())

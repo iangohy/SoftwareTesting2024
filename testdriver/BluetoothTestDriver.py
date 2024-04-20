@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class BluetoothTestDriver():
     def __init__(self, config, log_folderpath):
         self.bluetooth_dir = config.get("bluetooth_dir")
-        self.coverage_mode = config.get("coverage_mode", "distance")
+        self.coverage_mode = config.get("coverage_mode", "hash")
         self.log_folderpath = log_folderpath
         clean_gen_files()
         
@@ -44,14 +44,14 @@ class BluetoothTestDriver():
         is_interesting, cov_data = self.is_interesting(mode)
         logging.info("Is it interesting? {}".format(is_interesting))
 
-        response = None
+        # response = None
         
         # TODO: add cleanup (delete temporary file)
-        with open("bluetooth_fuzz.log") as f:
-            response = {"status_code": f.readline()}
-        response.update(cov_data) 
+        # with open("bluetooth_fuzz.log") as f:
+        #     response = {"status_code": f.readline()}
+        # response.update(cov_data) 
         
-        return (False, is_interesting, response)
+        return (False, is_interesting, cov_data)
     
     def find_and_delete_gcda(self, directory):
         """
@@ -112,7 +112,6 @@ class BluetoothTestDriver():
         except TestDriverCrashDetected as e:
             logger.exception(e)
             logger.error(f"Test driver crashed while running test case: {handle}, {payload}")
-            # TODO: determine return values on crash
             # Failure true
             return (True, False, {})
         
@@ -162,14 +161,12 @@ class BluetoothTestDriver():
                     brda = splitline[1].split(",")
                     # If count is zero
                     if brda[3] == "-" or 0:
-                        totalno_missing_branches += 1
                         array[count]["Branch"].append([brda[0], brda[1]])
                 else:
                     array[count]["Branch"] = []
                     brda = splitline[1].split(",")
                     # If count is zero
                     if brda[3] == "-" or 0:
-                        totalno_missing_branches += 1
                         array[count]["Branch"].append([brda[0], brda[1]])
                     
             if splitline[0] == "end_of_record":
@@ -179,9 +176,17 @@ class BluetoothTestDriver():
         for i in range(0, count):
             filename = array[i]['SF']
             branches = array[i]['Branch']
-            output_dict.update({filename: branches})
+            if len(branches) > 0:
+                # remove duplicate branches
+                b_set = set(map(tuple,branches))
+                b = list(map(list,b_set))
+                
+                totalno_missing_branches += len(b)
+                output_dict.update({filename: b})
 
-        return output_dict, totalno_missing_branches
+        sorted_output_dict = {key: output_dict[key] for key in sorted(output_dict)}
+
+        return sorted_output_dict, totalno_missing_branches
 
     def is_interesting(self, mode:str = 'hash'):
         # Store the new missing branches from the report
@@ -191,7 +196,7 @@ class BluetoothTestDriver():
 
         # Opens the coverage JSON report
         try:
-            f = open('ble/lcov.info', 'r')
+            f = open('/ble/lcov.info', 'r')
             lines = f.readlines()
             new_missing_branches, totalno_missing_branches = self.parse_lcov_lines(lines)
             f.close()
