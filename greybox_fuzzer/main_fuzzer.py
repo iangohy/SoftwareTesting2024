@@ -10,7 +10,7 @@ import time
 from smart_fuzzer.schunk import SChunk
 
 class MainFuzzer:
-    def __init__(self, seedQ: List[Any], oracle: Oracle, stats_collector, max_fuzz_cycles=10, energy_strat='hash', exponent=2):
+    def __init__(self, seedQ: List[Any], oracle: Oracle, stats_collector, max_fuzz_cycles=10, energy_strat='hash', exponent=2, chunk_mutation_enable=True, content_mutation_enable=True):
         """
         seedQ[i]: list of tuples in form (chunk, is_interesting_metric)
         energy_strat = 'hash' OR 'distance'
@@ -40,6 +40,11 @@ class MainFuzzer:
         # store some stats to report
         self.stats_collector = stats_collector
         self.logger = logging.getLogger(__name__)
+        # enable mutation
+        self.chunk_mutation_enable = chunk_mutation_enable
+        self.content_mutation_enable = content_mutation_enable
+
+        self.logger.info(f"MainFuzzer initialised: max_fuzz_cycles={self.max_fuzz_cycles},energy_strat={self.energy_strat},chunk_mutation_enable={self.chunk_mutation_enable},content_mutation_enable={self.content_mutation_enable}")
 
     def reset(self):
         self.energy = 100
@@ -142,8 +147,10 @@ class MainFuzzer:
                 generate_starttime = time.time_ns()
                 mutated_chunk = copy.deepcopy(next_input)
                 self.logger.info(f">> Energy cycle: {i+1}/{energy}")
-                mutated_chunk.mutate_chunk_tree()
-                mutated_chunk.mutate_contents()
+                if self.chunk_mutation_enable:
+                    mutated_chunk.mutate_chunk_tree()
+                if self.content_mutation_enable:
+                    mutated_chunk.mutate_contents()
                 generate_endtime = time.time_ns()
 
                 run_starttime = time.time_ns()

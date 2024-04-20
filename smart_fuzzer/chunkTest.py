@@ -36,11 +36,11 @@ def main():
 
     ### Verify mutation weights
     assert(django_chunk_tree_root.chunk_mutation_weights == [0.33, 0.33, 0.34])
-    assert(django_chunk_tree_root.get_lookup_chunk("endpoint").chunk_mutation_weights == [0.2, 0.2, 0.6])
+    assert(django_chunk_tree_root.get_lookup_chunk("endpoint").chunk_mutation_weights == [0.05, 0.05, 0.9])
 
     ### Verify content mutation weights
     assert(django_chunk_tree_root.content_mutation_weights == [0.25, 0.25, 0.25, 0.25])
-    assert(django_chunk_tree_root.get_lookup_chunk("endpoint").get_children()["endpoint0"].content_mutation_weights == [0.1, 0.5, 0.4, 0])
+    assert(django_chunk_tree_root.get_lookup_chunk("endpoint").get_children()["endpoint0"].content_mutation_weights == [0.05, 0.05, 0.05, 0.85])
 
     ### Test get content
     endpoint_content = django_chunk_tree_root.get_lookup_chunk("endpoint").get_content()
@@ -61,6 +61,15 @@ def main():
 
     assert(root_copy.get_children()["endpoint"] != root_copy_1.get_children()["endpoint"])
     print("root_copy lookup chunks:", root_copy.lookup_chunks)
+
+
+    ### Test individual mutation function
+    seed_4_generator = ChunkTreeGenerator("./django_seed_4_sample.ini")
+    seed_4 = seed_4_generator.generate_chunk_tree()
+    payload_chunk = seed_4.get_lookup_chunk("payload")
+    output = payload_chunk.add_chunk([])
+    assert(len(output) == 1)
+    assert(len(output[0].get_children()) == 2)
 
     ### Test mutation
 

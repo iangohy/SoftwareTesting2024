@@ -125,38 +125,47 @@ class CoapTestDriver:
             
             
             # WAIT FOR TEST CASE TO FINISH
-            while process_two.poll() is None:            
-                logger.info(f"Running")
+            process_two.wait()
             
-            
-            logger.info(f"Not running")
-            os.killpg(os.getpgid(process_one.pid), signal.SIGTERM) 
+            os.killpg(os.getpgid(process_one.pid), signal.SIGINT) 
             
             # WAIT FOR COAP SERVER TO END
-            while process_one.poll() is None:            
-                logger.info(f"Running")
-                
-            command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
-            logger.info(f"Running command: {command}")
-            Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+            process_one.wait()
             
-            try:
-                is_interesting, cov_data = self.is_interesting(mode)
-            except Exception as e:
-                # Failure true
-                return (True, False, {})
-            logging.info("Coverage run complete for {}".format(text_to_replace))
-            logging.info("Is it interesting? {}".format(is_interesting))
-            
+            path_to_coverage = os.getcwd()+'/.coverage'
+
+            is_interesting = False
+            cov_data = {}
             response = None
-            try:
-                with open("coap_fuzz.log") as f:
-                    response = {"status_code": f.readline()}
-            except FileNotFoundError:
-                time.sleep(0.2)
-                with open("coap_fuzz.log") as f:
-                    response = {"status_code": f.readline()}
-            response.update(cov_data)
+            
+            if os.path.exists(path_to_coverage):
+                logging.debug("Coverage report found at: {}".format(path_to_coverage))
+                command = "coverage2 json --pretty-print -o {}".format(os.getcwd()+'/testdriver/output.json')
+                logger.debug(f"Running command: {command}")
+                process_three = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+                
+                # WAIT FOR COVERAGE OUTPUT TO FINISH
+                process_three.wait()
+
+                try:
+                    is_interesting, cov_data = self.is_interesting(mode)
+                except Exception as e:
+                    # Failure true
+                    return (True, False, {})
+                logging.info("Coverage run complete for {}".format(text_to_replace))
+                logging.info("Is it interesting? {}".format(is_interesting))
+            
+                try:
+                    with open("coap_fuzz.log") as f:
+                        response = {"status_code": f.readline()}
+                except FileNotFoundError:
+                    time.sleep(0.2)
+                    with open("coap_fuzz.log") as f:
+                        response = {"status_code": f.readline()}
+                response.update(cov_data)
+
+            else:
+                logging.error("Coverage output not found!")
             
             return (False, is_interesting, response)
 
@@ -171,12 +180,17 @@ class CoapTestDriver:
             #     raise KeyboardInterrupt()
             os.set_blocking(process.stdout.fileno(), False)
             # line = non_block_read(process.stdout)
-            line = process.stdout.readline()
-            if line:
-                logger.info(f"OUTPUT: {line}")
+            try:
+                line = process.stdout.readline()
+                if line:
+                    logger.debug(f"OUTPUT: {line}")
+                    if logfile:
+                        logfile.write(line)
+                    check_for_blacklist_phrase(line, blacklist)
+            except:
+                logger.error("Unable to parse stdout")
                 if logfile:
-                    logfile.write(line)
-                check_for_blacklist_phrase(line, blacklist)
+                        logfile.write("Unable to parse stdout")
             if process.poll() is not None:
                 break
 
@@ -192,8 +206,8 @@ class CoapTestDriver:
             f = open(os.getcwd()+'/testdriver/output.json', 'r')
             coverage_data = json.loads(f.read())
             f.close()
-        except Exception:
-            logging.error("Cannot open output file")
+        except Exception as e:
+            logging.error("Cannot open output file: {}".format(e))
 
         is_interesting_result = False
         return_object = {}

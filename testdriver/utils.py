@@ -34,6 +34,7 @@ def clean_gen_files():
         '/testdriver/missing_branches.json',
         '/testdriver/output.json',
         '/testdriver/test_case.py',
+        '/.coverage'
     ]
 
     logging.info("Cleaning directory of old generated files.")

@@ -18,12 +18,21 @@ class StatsCollector:
         
     def add_teststats(self, test_generation_ns, test_run_ns, failed, is_interesting, is_interesting_stats):
         if not failed:
+            if is_interesting_stats is None:
+                is_interesting_stat_data = None
+            elif self.mode == EnergyAssignmentMode.HASH:
+                is_interesting_stat_data = is_interesting_stats["hash"] if "hash" in is_interesting_stats else None
+            elif self.mode == EnergyAssignmentMode.DISTANCE:
+                is_interesting_stat_data = is_interesting_stats["distance"] if "distance" in is_interesting_stats else None
+            else:
+                raise RuntimeError("No handling of is_interesting_stats")
+            
             test_stat = ({
                 "test_generation_ns": test_generation_ns,
                 "test_run_ns": test_run_ns,
                 "failed": failed,
                 "is_interesting": is_interesting,
-                "is_interesting_stats": is_interesting_stats["hash"] if self.mode == EnergyAssignmentMode.HASH else is_interesting_stats["dist"]
+                "is_interesting_stats": is_interesting_stat_data
             })
         else:
             test_stat = ({
@@ -48,7 +57,7 @@ class StatsCollector:
     def log_current_stats(self):
         failures = sum(map(lambda x: x["failed"], self.data))
         non_failure_tests = filter(lambda x: not x["failed"], self.data)
-        unique_states = set(map(lambda x: x["is_interesting_stats"], non_failure_tests))
+        unique_states = set(filter(lambda x: x is not None, map(lambda x: x["is_interesting_stats"], non_failure_tests)))
         stats = """
                     ______
                  .-'      `-.
