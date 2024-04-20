@@ -58,7 +58,7 @@ class BluetoothTestDriver():
         Recursively find .gcda files within directories and delete them if present.
         """
         
-        logger.info("Deleting GCDA Files")
+        logger.debug("Deleting GCDA Files")
         # Check if .gcda files exist in the current directory
         for item in os.listdir(directory):
             item_path = os.path.join(directory, item)
