@@ -161,14 +161,12 @@ class BluetoothTestDriver():
                     brda = splitline[1].split(",")
                     # If count is zero
                     if brda[3] == "-" or 0:
-                        totalno_missing_branches += 1
                         array[count]["Branch"].append([brda[0], brda[1]])
                 else:
                     array[count]["Branch"] = []
                     brda = splitline[1].split(",")
                     # If count is zero
                     if brda[3] == "-" or 0:
-                        totalno_missing_branches += 1
                         array[count]["Branch"].append([brda[0], brda[1]])
                     
             if splitline[0] == "end_of_record":
@@ -178,9 +176,17 @@ class BluetoothTestDriver():
         for i in range(0, count):
             filename = array[i]['SF']
             branches = array[i]['Branch']
-            output_dict.update({filename: branches})
+            if len(branches) > 0:
+                # remove duplicate branches
+                b_set = set(map(tuple,branches))
+                b = list(map(list,b_set))
+                
+                totalno_missing_branches += len(b)
+                output_dict.update({filename: b})
 
-        return output_dict, totalno_missing_branches
+        sorted_output_dict = {key: output_dict[key] for key in sorted(output_dict)}
+
+        return sorted_output_dict, totalno_missing_branches
 
     def is_interesting(self, mode:str = 'hash'):
         # Store the new missing branches from the report
