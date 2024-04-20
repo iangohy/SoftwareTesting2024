@@ -90,7 +90,7 @@ class BluetoothTestDriver():
             logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
             if chunk.children[c].chunk_name == "handle":
                 filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
-            else:            
+            elif chunk.children[c].chunk_name == "payload":         
                 hex_input = binascii.hexlify(chunk.children[c].chunk_content.encode())
                 filedata = filedata.replace('|replace_byte|', str(hex_input))
               

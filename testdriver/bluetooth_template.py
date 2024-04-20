@@ -120,7 +120,7 @@ class TargetEventsListener(Device.Listener):
             logger.info("==================================")
             logger.info(target)
             logger.info(attributes[i])
-            if attributes[i].handle == |replace_handle|:
+            if attributes[i].handle == int("|replace_handle|"):
             # if attributes[i].handle == 37:
                 response_write = await self.write_target(target, attributes[i], [|replace_byte|])
                 # response_write = await self.write_target(target, attributes[i], [0x0037])
