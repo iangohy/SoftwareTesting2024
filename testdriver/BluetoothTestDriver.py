@@ -22,16 +22,6 @@ class BluetoothTestDriver():
         self.coverage_mode = config.get("coverage_mode", "distance")
         clean_gen_files()
         
-    def move_flash_bin(self):
-        try:
-            shutil.copyfile("./flash.bin", self.bluetooth_dir+"/flash.bin")
-        except FileNotFoundError:
-            logging.info("File not found.")
-        except PermissionError:
-            logging.info("Permission denied.")
-        except Exception as e:
-            logging.info(f"An error occurred: {e}")
-        
     def run_coverage(self, mode='hash'):
         # TODO implement modes
         command = f"lcov --capture --directory {self.bluetooth_dir} --output-file {self.bluetooth_dir}/lcov.info -q --rc lcov_branch_coverage=1"
@@ -53,32 +43,31 @@ class BluetoothTestDriver():
         logging.info("Is it interesting? {}".format(is_interesting))
 
         response = None
+        
         # TODO: add cleanup (delete temporary file)
         with open("bluetooth_fuzz.log") as f:
             response = {"status_code": f.readline()}
         response.update(cov_data) 
-        # {'hash': sth}
-        # TODO check if this is correct for is_interesting_states in stats_collector.py
-        # is_interesting_stats = {mode: cov_data}
-        # response.update(is_interesting_stats)
+        
         return (False, is_interesting, response)
     
     def find_and_delete_gcda(self, directory):
         """
         Recursively find .gcda files within directories and delete them if present.
         """
+        
+        logger.info("Deleting GCDA Files")
         # Check if .gcda files exist in the current directory
         for item in os.listdir(directory):
             item_path = os.path.join(directory, item)
             if os.path.isfile(item_path) and item.endswith('.gcda'):
                 os.remove(item_path)
-                print(f"Deleted: {item_path}")
             elif os.path.isdir(item_path):
                 self.find_and_delete_gcda(item_path)
 
     
     def generate_code_with_test(self, handle, payload):
-        # clean gcda files
+        # CLEAN gcda files
         dir_name = self.bluetooth_dir + "/build"
         self.find_and_delete_gcda(dir_name)
         
@@ -93,14 +82,6 @@ class BluetoothTestDriver():
         hex_input = binascii.hexlify(input_bytes).decode()
         filedata = filedata.replace('|replace_byte|', "0x"+str(hex_input))
         
-        # Replace the target string
-        # for c in chunk.children:
-        #     logger.info(f"Chunk children: {chunk.children[c].chunk_name}")
-        #     if chunk.children[c].chunk_name == "handle":
-        #         filedata = filedata.replace('|replace_handle|', sanitize_input(str(chunk.children[c].chunk_content)))
-        #     else:            
-        #         filedata = filedata.replace('|replace_byte|', sanitize_input(str(chunk.children[c].chunk_content.encode())))
-            
         filedata = filedata.replace('|bluetooth_dir|', self.bluetooth_dir)        
 
         # Write the file out again
@@ -141,8 +122,6 @@ class BluetoothTestDriver():
             if process.poll() is not None:
                 break 
         
-        # move flash.bin to bluetooth folder
-        # self.move_flash_bin()
         logger.info("===END===")
     
     def analyze_results(self, response):
