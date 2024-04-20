@@ -191,10 +191,10 @@ async def run_controller():
         while process.poll() is None:  # Check if the subprocess is still running
             # Read subprocess output
             output = process.stdout.readline().decode().strip()
+            logger.info("BluetoothFuzz zephyr:" + output)
             
             output = output.split(" ")
             
-            logger.info("First ---   " + output[0] )
             if output[0] == "ASSERTION":
                 find_and_kill_processes(9000)
 

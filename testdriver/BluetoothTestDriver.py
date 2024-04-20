@@ -5,21 +5,23 @@
 import logging
 from subprocess import Popen, PIPE, STDOUT
 import logging
-import shutil
 import os
 import binascii
 import json
 import hashlib
 from smart_fuzzer.schunk import SChunk
 from testdriver.utils import sanitize_input, clean_gen_files
+from testdriver.custom_exceptions import TestDriverCrashDetected
+import time
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 
 class BluetoothTestDriver():
-    def __init__(self, config):
+    def __init__(self, config, log_folderpath):
         self.bluetooth_dir = config.get("bluetooth_dir")
         self.coverage_mode = config.get("coverage_mode", "distance")
+        self.log_folderpath = log_folderpath
         clean_gen_files()
         
     def run_coverage(self, mode='hash'):
@@ -99,12 +101,21 @@ class BluetoothTestDriver():
         self.generate_code_with_test(handle, payload)
         
         command = f"python3 {self.bluetooth_dir}/bluetooth_fuzz.py"
-        with open("bluetooth_fuzz.log", "a") as logfile:
-            try:
-                process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
-                self.process_stdout(process, logfile)
-            except Exception as e:
-                logger.info(f"ERROR: {e}")
+        process = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
+        try:
+            if test_number is not None:
+                filename = f"{self.log_folderpath}/bluetooth_testdriver_{test_number}.log"
+            else:
+                filename = f"{self.log_folderpath}/bluetooth_testdriver_{int(time.time())}.log"
+            with open(filename, "w") as file:
+                self.process_stdout(process, file)
+        except TestDriverCrashDetected as e:
+            logger.exception(e)
+            logger.error(f"Test driver crashed while running test case: {handle}, {payload}")
+            # TODO: determine return values on crash
+            # Failure true
+            return (True, False, {})
+        
         if coverage:
             Failure, is_interesting, information = self.run_coverage(mode=self.coverage_mode)
             
