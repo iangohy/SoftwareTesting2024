@@ -3,18 +3,57 @@ import json
 import os
 
 base_folderpath = os.path.expanduser("~/Downloads")
-prepend_string = "ian_"
-testcase_data = {
-    "A": ["A1_ian", "A2_ian", "A3_ian", "A4_ian", "A5_ian"],
-    "B": ["B6_ian", "B7_ian", "B8_ian", "B9_ian", "B10_ian"],
-    "C": ["C11_ian", "C12_ian", "C13_ian", "C14_ian", "C15_ian"]
-}
-# prepend_string = "chrisL_"
+
+### Done
+# prepend_string = "django_ian_"
+# testcase_data = {
+#     "A": ["A1_ian", "A2_ian", "A3_ian", "A4_ian", "A5_ian"],
+#     "B": ["B6_ian", "B7_ian", "B8_ian", "B9_ian", "B10_ian"],
+#     "C": ["C11_ian", "C12_ian", "C13_ian", "C14_ian", "C15_ian"],
+#     "X": ["X100_ian", "X101_ian", "X102_ian", "X103_ian", "X104_ian"]
+# }
+
+# prepend_string = "django_chrisw_"
+# testcase_data = {
+#     "A": ["A1_chrisw", "A2_chrisw", "A3_chrisw", "A4_chrisw", "A5_chrisw"],
+#     "B": ["B6_chrisw", "B7_chrisw", "B8_chrisw", "B9_chrisw", "B10_chrisw"],
+#     "C": ["C11_chrisw", "C12_chrisw", "C13_chrisw", "C14_chrisw", "C15_chrisw"]
+# }
+
+### Done
+# prepend_string = "coap_chrisL_"
 # testcase_data = {
 #     "D": ["D16_chrisL", "D17_chrisL", "D18_chrisL", "D19_chrisL", "D20_chrisL"],
 #     "E": ["E21_chrisL", "E22_chrisL", "E23_chrisL", "E24_chrisL", "E25_chrisL"],
-#     "F": ["F26_chrisL", "F27_chrisL", "F28_chrisL", "F29_chrisL", "F30_chrisL"]
+#     "F": ["F26_chrisL", "F27_chrisL", "F28_chrisL", "F29_chrisL", "F30_chrisL"],
+#     "Y": ["Y105_chrisL", "Y106_chrisL", "Y107_chrisL", "Y108_chrisL", "Y109_chrisL"]
 # }
+
+### Done
+# prepend_string = "coap_YJ_"
+# testcase_data = {
+#     "D": ["D16_YJ", "D17_YJ", "D18_YJ", "D19_YJ", "D20_YJ"],
+#     "E": ["E21_YJ", "E22_YJ", "E23_YJ", "E24_YJ", "E25_YJ"],
+#     "F": ["F26_YJ", "F27_YJ", "F28_YJ", "F29_YJ", "F30_YJ"]
+# }
+
+### Done
+# prepend_string = "ble_ian_"
+# testcase_data = {
+#     "G": ["G31_ian", "G32_ian", "G33_ian", "G34_ian", "G35_ian"],
+#     "H": ["H36_ian", "H37_ian", "H38_ian", "H39_ian", "H40_ian"],
+#     "I": ["I41_ian", "I42_ian", "I43_ian", "I44_ian", "I45_ian"],
+#     "Z": ["Z110_ian", "Z111_ian", "Z112_ian", "Z113_ian", "Z114_ian"]
+# }
+
+### Done
+prepend_string = "ble_jiahui_"
+testcase_data = {
+    "G": ["G31_jiahui", "G32_jiahui", "G33_jiahui", "G34_jiahui", "G35_jiahui"],
+    "H": ["H36_jiahui", "H37_jiahui", "H38_jiahui", "H39_jiahui", "H40_jiahui"],
+    "I": ["I41_jiahui", "I42_jiahui", "I43_jiahui", "I44_jiahui", "I45_jiahui"],
+    "Z": ["Z110_jiahui", "Z111_jiahui", "Z112_jiahui", "Z113_jiahui", "Z114_jiahui"]
+}
 
 interesting_data_full = {}
 time_data_full = {}
@@ -62,7 +101,7 @@ for testcase in testcase_data:
 
     plt.clf()
     plt.plot(interesting_average)
-    plt.title("RQ1: Interesting test cases found against\n number of test cases (averaged over 5 experiments)")
+    plt.title(f"RQ1: Testcase {testcase} - Interesting test cases found\n against number of test cases (averaged over 5 experiments)")
     graph_filepath = f"{prepend_string}testcase_{testcase}_interesting_average.png"
     plt.savefig(graph_filepath)
     print(f"RQ1 saved as {graph_filepath}")
@@ -95,7 +134,7 @@ for testcase in testcase_data:
     print("\n---------------\nRQ4\n---------------")
     plt.clf()
     testcase_interesting_found = [x[-1] for x in interesting_data]
-    plt.bar(stats_folders, testcase_interesting_found, width=0.4)
+    plt.bar([i.split("_")[0] for i in stats_folders], testcase_interesting_found, width=0.4)
     plt.title(f"RQ4: Stability study of Testcase {testcase} (#interesting)")
     # plt.legend()
     graph_filepath = f"{prepend_string}testcase_{testcase}_stability.png"
