@@ -9,12 +9,18 @@ testcase_data = {
     "B": ["B6_ian", "B7_ian", "B8_ian", "B9_ian", "B10_ian"],
     "C": ["C11_ian", "C12_ian", "C13_ian", "C14_ian", "C15_ian"]
 }
+# prepend_string = "chrisL_"
+# testcase_data = {
+#     "D": ["D16_chrisL", "D17_chrisL", "D18_chrisL", "D19_chrisL", "D20_chrisL"],
+#     "E": ["E21_chrisL", "E22_chrisL", "E23_chrisL", "E24_chrisL", "E25_chrisL"],
+#     "F": ["F26_chrisL", "F27_chrisL", "F28_chrisL", "F29_chrisL", "F30_chrisL"]
+# }
 
-data = []
 interesting_data_full = {}
 time_data_full = {}
 
 for testcase in testcase_data:
+    data = []
     stats_folders = testcase_data[testcase]
     # Open stats.json for each experiment
     print(f"\n\n===== Testcase {testcase} =====")
@@ -23,8 +29,8 @@ for testcase in testcase_data:
         print(f"Reading from filepath: {filepath}")
         with open(filepath) as file:
             stat = file.readline()
-            stat_json = json.loads(stat)
-            data.append(stat_json)
+            json_data = json.loads(stat)
+            data.append(json_data)
 
     # Print out failures found
     def extract_failures(testcase_data):
@@ -84,6 +90,17 @@ for testcase in testcase_data:
     print(f"Average test run (ms) over {len(test_run_ms_flatmap)} tests: {average_test_run_ms} ms")
 
     time_data_full[testcase] = (average_test_generation_ms, average_test_run_ms)
+
+    # RQ4: Stability
+    print("\n---------------\nRQ4\n---------------")
+    plt.clf()
+    testcase_interesting_found = [x[-1] for x in interesting_data]
+    plt.bar(stats_folders, testcase_interesting_found, width=0.4)
+    plt.title(f"RQ4: Stability study of Testcase {testcase} (#interesting)")
+    # plt.legend()
+    graph_filepath = f"{prepend_string}testcase_{testcase}_stability.png"
+    plt.savefig(graph_filepath)
+    print(f"RQ4 saved as {graph_filepath}")
 
 # Save timing data to csv
 timing_filepath = f"{prepend_string}testcase_{"_".join(testcase_data.keys())}_timing.csv"
