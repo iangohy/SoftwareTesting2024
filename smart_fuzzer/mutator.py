@@ -64,7 +64,9 @@ class Mutator:
 
             case ASCIIMutations.NO_MUTATION:
                 mutator = self.no_mutation
-
+                
+            case ASCIIMutations.BIG_INSERT:
+                mutator = self.multiply_input_100
             case _:
                 raise Exception("No match for ASCII mutation")
             
