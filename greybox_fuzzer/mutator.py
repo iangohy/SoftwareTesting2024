@@ -124,3 +124,7 @@ class Mutator:
         pos = random.randint(start, len(value) - 1)
         return value[:pos] + value[pos + 1:]
     
+    def multiply_input_100(self, value, start=0):
+        value = value * 100
+        return value
+    

@@ -168,3 +168,6 @@ class Mutator:
     def no_mutation(self, value, start=0):
         return value
     
+    def multiply_input_100(self, value, start=0):
+        value = value * 100
+        return value
