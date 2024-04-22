@@ -7,7 +7,8 @@ class ASCIIMutations(Enum):
     DELETE = 1
     FLIP_BIT = 2
     INSERT_RANDOM_ASCII = 3
-    NO_MUTATION = 4
+    BIG_INSERT = 4
+    NO_MUTATION = 5
 
 class Mutator:
     """A mutator 
