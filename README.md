@@ -29,7 +29,7 @@ docker run -v "$(PWD)/logs:/sudifuzz/logs" sudifuzz_ubuntu sudifuzz_config_bt_ex
 ## Running (without Docker)
 ```
 python sudifuzz.py --config sudifuzz_config_<target_app>_example.ini
-```
+``` 
 
 ## Development Notes
 ### Testing individual modules
