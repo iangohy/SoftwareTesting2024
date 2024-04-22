@@ -66,11 +66,11 @@ class Mutator:
                 mutator = self.no_mutation
                 
             case ASCIIMutations.BIG_INSERT:
-                mutator = self.multiply_input_100
+                mutator = self.multiply_input_2
             case _:
                 raise Exception("No match for ASCII mutation")
             
-        self.logger.log(f"content mutation for {string}: {ascii_mutation}")
+        self.logger.log(f"content mutation for {string:.100s}: {ascii_mutation}")
                 
         return mutator(string, start)
     
@@ -171,6 +171,6 @@ class Mutator:
     def no_mutation(self, value, start=0):
         return value
     
-    def multiply_input_100(self, value, start=0):
-        value = value * 100
+    def multiply_input_2(self, value, start=0):
+        value = value * 2
         return value

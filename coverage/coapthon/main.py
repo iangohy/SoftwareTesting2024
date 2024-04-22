@@ -33,7 +33,7 @@ async def send_request_with_coverage(endpoint, method, input:str):
     json_report = await asyncio.create_subprocess_shell("coverage2 json --pretty-print -o {}".format(COVERAGE_JSON_FILE))
     await json_report.wait()
 
-    logging.info("Coverage run complete for {}".format(input))
+    logging.info("Coverage run complete for {:.100}".format(str(input)))
 
 def is_interesting():
     # Opens the coverage JSON report

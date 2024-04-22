@@ -30,7 +30,7 @@ class DjangoTestDriver:
         payload = chunk.get_lookup_chunk("payload").get_content()
         logger.info(f"method: {method}")
         logger.info(f"endpoint: {endpoint}")
-        logger.info(f"payload: {payload}")
+        logger.info(f"payload: {str(payload):.50s}")
 
         return self.send_request_with_interesting(
             endpoint=endpoint,
@@ -136,7 +136,7 @@ class DjangoTestDriver:
                 return (True, None, None)
 
             is_interesting, cov_data = self.is_interesting(mode)
-            logging.info("Coverage run complete for {}".format(text_to_replace))
+            logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
             logging.info("Is it interesting? {}".format(is_interesting))
             
             response = None
