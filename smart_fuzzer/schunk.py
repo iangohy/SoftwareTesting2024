@@ -16,7 +16,7 @@ class ChunkMutate(Enum):
     NO_MUTATION = 3
 
 class SChunk:
-    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING, content_mutation_weights=[0.25, 0.25, 0.25, 0.25]):
+    def __init__(self, chunk_name, chunk_content=None, removable=False, children={}, lookup_chunks={}, chunk_mutation_weights = [0.33, 0.33, 0.34], chunk_type=ChunkType.STRING, content_mutation_weights=[0.25, 0.25, 0.25, 0.01, 0.25]):
         self.chunk_name = chunk_name                            # Name of the chunk, corresponds to section name in seed config file
         self.chunk_content = chunk_content                      # Content in the chunk
         self.removable = removable                              # removable flag
@@ -99,6 +99,7 @@ class SChunk:
         if not self.children:
             content_mutator = Mutator(None)
             for _ in range(random.randint(1, 2)):
+                # self.logger.log(self.content_mutation_weights)
                 mutation = random.choices(list(ASCIIMutations), self.content_mutation_weights)[0]
                 self.chunk_content = content_mutator.mutate_n_times_with_choice(string=self.chunk_content, ascii_mutation=mutation, n=random.randint(1, 10))
 
