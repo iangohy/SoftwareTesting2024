@@ -22,9 +22,6 @@ class ChunkTreeGenerator:
 
     def create_child_chunk(self, current_chunk, section_name, chunk_content, chunk_children):
         if chunk_children == 'None':
-            if (self.config.has_option(section_name, 'chunkMutationWeights')):
-                chunk_mutation_weights = list(map(float, self.config.get(section_name, 'chunkMutationWeights').split()))
-                return current_chunk.set_chunk_mutation_weights(chunk_mutation_weights)
             return
         else:
             children_sections = self.config[section_name].get('children', 'None').split()
@@ -42,8 +39,6 @@ class ChunkTreeGenerator:
                                        chunk_mutation_weights=mutation_weights,
                                        chunk_type=section_chunk_type,
                                        content_mutation_weights=content_mutation_weights)
-                if (self.config.has_option(child_section, 'chunkMutationWeights')):
-                    section_chunk.chunk_mutation_weights = list(map(float, self.config.get(child_section, 'chunkMutationWeights').split()))
 
                 child_chunk = self.create_child_chunk(section_chunk,
                                                       child_section, 
