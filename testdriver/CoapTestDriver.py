@@ -113,29 +113,40 @@ class CoapTestDriver:
             logger.info(f"Running command: {command}")
             process_two = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
+            # WAIT FOR TEST CASE TO FINISH
+            logger.info("Waiting for test file to complete")
+            if test_number is not None:
+                filename = f"{self.log_folderpath}/coap_testdriver_testfile_{test_number}.log"
+            else:
+                filename = f"{self.log_folderpath}/coap_testdriver_testfile_{int(time.time())}.log"
+            with open(filename, "w") as file:
+                    try:
+                        self.process_stdout(process_two, file)
+                    except TestDriverCrashDetected:
+                        # Force crash to end test file
+                        pass
+            logger.info("Test file completed")
             
+            logger.info("Test file done, waiting for server to end.")
+            os.killpg(os.getpgid(process_one.pid), signal.SIGINT) 
+
             try:
                 if test_number is not None:
                     filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
                 else:
                     filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
                 with open(filename, "w") as file:
-                    self.process_stdout(process_two, file)
+                    self.process_stdout(process_one, file)
             except TestDriverCrashDetected as e:
-                logger.exception(e)
-                logger.error(f"Test driver crashed while running test case: {input_data}")
-                # TODO: determine return values on crash
-                # Failure true
-                return (True, False, {})
-            
-            
-            # WAIT FOR TEST CASE TO FINISH
-            process_two.wait()
-            
-            process_one.terminate()
+                if e.code != -2:
+                    logger.exception(e)
+                    logger.error(f"Test driver crashed while running test case: {input_data}")
+                    # TODO: determine return values on crash
+                    # Failure true
+                    return (True, False, {})
             
             # WAIT FOR COAP SERVER TO END
-            process_one.wait()
+            # process_one.wait()
             
             path_to_coverage = os.getcwd()+'/.coverage'
 
@@ -187,12 +198,15 @@ class CoapTestDriver:
             os.set_blocking(process.stdout.fileno(), False)
             # line = non_block_read(process.stdout)
             try:
-                line = process.stdout.readline()
-                if line:
-                    logger.debug(f"OUTPUT: {line}")
-                    if logfile:
-                        logfile.write(line)
-                    check_for_blacklist_phrase(line, blacklist)
+                while True:
+                    line = process.stdout.readline()
+                    if line:
+                        logger.debug(f"OUTPUT: {line}")
+                        if logfile:
+                            logfile.write(line)
+                        check_for_blacklist_phrase(line, blacklist)
+                    else:
+                        break
             except:
                 logger.error("Unable to parse stdout")
                 if logfile:
@@ -202,7 +216,7 @@ class CoapTestDriver:
 
         status = process.poll()
         if status != 0:
-            raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}")
+            raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}", process.poll())
         else:
             logger.debug("Process exited with status 0")
             
