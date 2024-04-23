@@ -34,5 +34,5 @@ def test_case():
 
 if __name__ == "__main__":
     test_case()
-    logger.info("Killing " + os.getpid())
+    logger.info("Killing " + str(os.getpid()))
     os.system('kill %d' % os.getpid())

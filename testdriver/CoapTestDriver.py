@@ -1,6 +1,5 @@
 from aiocoap import Context, Message, Code
 import logging
-import asyncio
 import logging
 import os
 import json
@@ -8,7 +7,7 @@ import time
 import signal
 import hashlib
 import configparser
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
 from testdriver.utils import check_for_blacklist_phrase, sanitize_input, clean_gen_files
 from testdriver.custom_exceptions import TestDriverCrashDetected
 
@@ -177,8 +176,8 @@ class CoapTestDriver:
                         response = {"status_code": f.readline()}
                 except FileNotFoundError:
                     logger.info("File not Found")
-                    # return failure
-                    return (True, False, {})
+                    # Error occurred running test case
+                    return (False, False, {})
                 response.update(cov_data)
 
             else:
@@ -192,33 +191,42 @@ class CoapTestDriver:
         blacklist = ["segmentation fault", "core dumped"]
         logger.debug(f"Blacklist is: {blacklist}")
 
-        while True:
-            # if self.exit_event.is_set():
-            #     raise KeyboardInterrupt()
-            os.set_blocking(process.stdout.fileno(), False)
-            # line = non_block_read(process.stdout)
-            try:
-                while True:
-                    line = process.stdout.readline()
-                    if line:
-                        logger.debug(f"OUTPUT: {line}")
-                        if logfile:
-                            logfile.write(line)
-                        check_for_blacklist_phrase(line, blacklist)
-                    else:
-                        break
-            except:
-                logger.error("Unable to parse stdout")
-                if logfile:
-                        logfile.write("Unable to parse stdout")
-            if process.poll() is not None:
-                break
+        try:
+            stdout_data, _ = process.communicate(timeout=10)
+            logger.debug(f"stdout_data: {stdout_data}")
+            if logfile:
+                logfile.write(stdout_data)
+                check_for_blacklist_phrase(stdout_data, blacklist)
+        except TimeoutExpired:
+            raise TestDriverCrashDetected("CoAP server not responding to SIGNINT after 10s")
 
-        status = process.poll()
-        if status != 0:
-            raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}", process.poll())
-        else:
-            logger.debug("Process exited with status 0")
+        # while True:
+        #     # if self.exit_event.is_set():
+        #     #     raise KeyboardInterrupt()
+        #     os.set_blocking(process.stdout.fileno(), False)
+        #     # line = non_block_read(process.stdout)
+        #     try:
+        #         while True:
+        #             line = process.stdout.readline()
+        #             if line:
+        #                 logger.debug(f"OUTPUT: {line}")
+        #                 if logfile:
+        #                     logfile.write(line)
+        #                 check_for_blacklist_phrase(line, blacklist)
+        #             else:
+        #                 break
+        #     except:
+        #         logger.error("Unable to parse stdout")
+        #         if logfile:
+        #                 logfile.write("Unable to parse stdout")
+        #     if process.poll() is not None:
+        #         break
+
+        # status = process.poll()
+        # if status != 0:
+        #     raise TestDriverCrashDetected(f"Process exited with signal {process.poll()}", process.poll())
+        # else:
+        #     logger.debug("Process exited with status 0")
             
     def is_interesting(self, mode:str = 'hash'):
         # Opens the coverage JSON report
