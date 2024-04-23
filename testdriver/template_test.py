@@ -22,18 +22,20 @@ class CoverageTests(TestCase):
         
         form_data = json.loads('|FORM_DATA|')
         
+        headers = json.loads('|HEADER|')
+        
         logging.info("========Starting request========")
         
         if method == "post":
-            response = self.client.post(endpoint, form_data, content_type='application/json')
+            response = self.client.post(endpoint, form_data, content_type='application/json', **headers)
         elif method == "delete":
-            response = self.client.delete(endpoint, form_data, content_type='application/json')
+            response = self.client.delete(endpoint, form_data, content_type='application/json', **headers)
         elif method == "put":
-            response = self.client.put(endpoint, form_data, content_type='application/json')
+            response = self.client.put(endpoint, form_data, content_type='application/json', **headers)
         elif method == "patch":
-            response = self.client.patch(endpoint, form_data, content_type='application/json')
+            response = self.client.patch(endpoint, form_data, content_type='application/json', **headers)
         else:
-            response = self.client.get(endpoint)
+            response = self.client.get(endpoint, **headers)
         
         if response:
             with open("fuzz.log", "w") as f:

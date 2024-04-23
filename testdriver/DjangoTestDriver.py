@@ -28,15 +28,18 @@ class DjangoTestDriver:
         method = chunk.get_lookup_chunk("method").get_content()
         endpoint = chunk.get_lookup_chunk("endpoint").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
+        header = chunk.get_lookup_chunk("header").get_content()
         logger.info(f"method: {method}")
         logger.info(f"endpoint: {endpoint}")
         # logger.info(f"payload: {str(payload):.50s}")
         logger.info(f"payload: {payload}")
+        logger.info(f"header: {header}")
 
         return self.send_request_with_interesting(
             endpoint=endpoint,
             input_data=payload,
             method=method,
+            header=header,
             coverage=coverage,
             mode=self.coverage_mode,
             test_number=test_number
@@ -82,6 +85,7 @@ class DjangoTestDriver:
             endpoint,
             input_data={'name': "hello",'info': "bye",'price': str(1)}, 
             method="get", # post | get | put | delete | patch
+            header=None,
             coverage=False,
             mode="hash",
             test_number=None
@@ -94,11 +98,25 @@ class DjangoTestDriver:
          - input_data["formData"] and input_data["headers"]
         """
         
+        if len(list(header)) > 1: 
+            token = list(header)[0]
+            token_val = list(header.values())[0]
+            
+            session = list(header)[1]
+            session_val = list(header.values())[1]
+            
+            content = f'{token}={token_val}; {session}={session_val}'
+            
+            header = {
+                'Cookie': content
+            }
+        
         text_to_replace = {
             # endpoint should not need "/" in front
             "ENDPOINT":  sanitize_input(endpoint),
             "FORM_DATA": sanitize_input(json.dumps(input_data)),
-            "METHOD":    sanitize_input(method)
+            "METHOD":    sanitize_input(method),
+            "HEADER": sanitize_input(json.dumps(header))
         }
 
         # Reads the current template file
