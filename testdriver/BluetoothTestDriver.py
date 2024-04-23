@@ -95,6 +95,7 @@ class BluetoothTestDriver():
         handle = chunk.get_lookup_chunk("handle").get_content()
         payload = chunk.get_lookup_chunk("payload").get_content()
         logger.info(f"handle: {handle}")
+        # logger.info(f"payload: {payload:.50s}")
         logger.info(f"payload: {payload}")
         
         # Generate python file with inputs

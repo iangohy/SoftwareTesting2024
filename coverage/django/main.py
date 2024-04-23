@@ -24,7 +24,7 @@ def send_request_with_coverage(text_to_replace):
     # Runs the coverage command on the Django directory and generates a JSON report
     os.system("coverage3 run --branch --omit='tests.py' {}manage.py test; coverage3 json -o {}".format(DJANGO_DIRECTORY, COVERAGE_JSON_FILE))
 
-    logging.info("Coverage run complete for {}".format(text_to_replace))
+    logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
 
 def is_interesting():
     # Opens the coverage JSON report
