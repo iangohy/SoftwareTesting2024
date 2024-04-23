@@ -120,7 +120,7 @@ class CoapTestDriver:
                 filename = f"{self.log_folderpath}/coap_testdriver_testfile_{int(time.time())}.log"
             with open(filename, "w") as file:
                     try:
-                        self.process_stdout(process_two, file)
+                        self.process_stdout(process_two, file, 20)
                     except TestDriverCrashDetected:
                         # Force crash to end test file
                         pass
@@ -135,7 +135,7 @@ class CoapTestDriver:
                 else:
                     filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
                 with open(filename, "w") as file:
-                    self.process_stdout(process_one, file)
+                    self.process_stdout(process_one, file, 10)
             except TestDriverCrashDetected as e:
                 if e.code != -2:
                     logger.exception(e)
@@ -185,14 +185,14 @@ class CoapTestDriver:
             
             return (False, is_interesting, response)
 
-    def process_stdout(self, process: Popen, logfile):
+    def process_stdout(self, process: Popen, logfile, timeout=10):
         logger.info("Handling target application stdout and stderr")
         # Case ignored
         blacklist = ["segmentation fault", "core dumped"]
         logger.debug(f"Blacklist is: {blacklist}")
 
         try:
-            stdout_data, _ = process.communicate(timeout=10)
+            stdout_data, _ = process.communicate(timeout)
             logger.debug(f"stdout_data: {stdout_data}")
             if logfile:
                 logfile.write(stdout_data)
