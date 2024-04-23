@@ -14,7 +14,8 @@ class ChunkTreeGenerator:
     def generate_chunk_tree(self):
         self.config.read(self.input_config_seed)
         chunk_mutation_weights = [float(i) for i in self.config["root"].get('chunkMutationWeights', "0.33 0.33 0.34").split(" ")]
-        content_mutation_weights = [float(i) for i in self.config["root"].get('contentMutationWeights', "0.2 0.2 0.2 0.2 0.2").split(" ")]
+        # Root has no content
+        content_mutation_weights = [float(i) for i in self.config["root"].get('contentMutationWeights', "0 0 0 0 1").split(" ")]
         root = SChunk('root', chunk_content=None, removable=False, chunk_mutation_weights=chunk_mutation_weights, chunk_type=ChunkType.OBJECT, content_mutation_weights=content_mutation_weights)
         self.create_child_chunk(root, 'root', None, self.config.get('root', 'children'))
 
@@ -39,6 +40,8 @@ class ChunkTreeGenerator:
                                        chunk_mutation_weights=mutation_weights,
                                        chunk_type=section_chunk_type,
                                        content_mutation_weights=content_mutation_weights)
+                if (self.config[child_section].get('content') is None):
+                    section_chunk.content_mutation_weights = [0, 0, 0, 0, 1]
 
                 child_chunk = self.create_child_chunk(section_chunk,
                                                       child_section, 
