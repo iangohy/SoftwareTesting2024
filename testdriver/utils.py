@@ -1,4 +1,4 @@
-import logging, os
+import logging, os, re
 
 from testdriver.custom_exceptions import TestDriverCrashDetected
 
@@ -26,6 +26,8 @@ def sanitize_input(input_str:str):
                 sanitized_string += '\\' + char
         else:
             sanitized_string += char
+
+    sanitized_string = re.sub(r'[^\x00-\x7F]+', '', sanitized_string)
 
     return sanitized_string
 
