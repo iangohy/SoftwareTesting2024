@@ -159,12 +159,12 @@ class CoapTestDriver:
                 logging.info("Is it interesting? {}".format(is_interesting))
             
                 try:
-                    with open("coap_fuzz.log") as f:
+                    with open("coap_fuzz.log", "r") as f:
                         response = {"status_code": f.readline()}
                 except FileNotFoundError:
-                    time.sleep(0.2)
-                    with open("coap_fuzz.log") as f:
-                        response = {"status_code": f.readline()}
+                    logger.info("File not Found")
+                    # return failure
+                    return (True, False, {})
                 response.update(cov_data)
 
             else:
@@ -357,4 +357,4 @@ if __name__ == "__main__":
     code_schunk = SChunk("code", chunk_content="1")
     root_schunk = SChunk("root", children={endpoint_schunk, payload_schunk, code_schunk},
                          lookup_chunks={"endpoint": endpoint_schunk, "payload": payload_schunk, "code": code_schunk})
-    asyncio.run(driver.run_test(root_schunk, True, 9999))
+    driver.run_test(root_schunk, True, 9999)

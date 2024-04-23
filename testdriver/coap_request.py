@@ -17,7 +17,7 @@ def test_case():
         
         client = HelperClient(server=("127.0.0.1", 5683))
 
-        response = client.send_request(request)
+        response = client.send_request(request, timeout=10)
         
         logger.info(response)
         client.stop()
