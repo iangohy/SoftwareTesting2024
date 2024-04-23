@@ -32,6 +32,7 @@ def sanitize_input(input_str:str):
 def clean_gen_files():
     files = [
         '/testdriver/missing_branches.json',
+        '/testdriver/missing_lines.json',
         '/testdriver/output.json',
         '/testdriver/test_case.py',
         '/.coverage',
