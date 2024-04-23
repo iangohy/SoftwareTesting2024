@@ -34,7 +34,8 @@ class CoapTestDriver:
         payload = chunk.get_lookup_chunk("payload").get_content()
         logger.info(f"method: {code}")
         logger.info(f"endpoint: {endpoint}")
-        logger.info(f"payload: {str(payload):.50s}")
+        # logger.info(f"payload: {str(payload):.50s}")
+        logger.info(f"payload: {payload}")
         
         return self.send_request_with_interesting(
             code=code,
@@ -152,7 +153,8 @@ class CoapTestDriver:
                 except Exception as e:
                     # Failure true
                     return (True, False, {})
-                logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
+                # logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
+                logging.info("Coverage run complete for {}".format(str(text_to_replace)))
                 logging.info("Is it interesting? {}".format(is_interesting))
             
                 try:
