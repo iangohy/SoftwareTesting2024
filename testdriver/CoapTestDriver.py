@@ -100,6 +100,9 @@ class CoapTestDriver:
         f = open(f"{self.coap_dir}/coap_test.py", 'w')
         f.write(data)
         f.close()
+        
+        if os.path.exists(os.getcwd()+"/coap_fuzz.log"):
+            os.remove(os.getcwd()+"/coap_fuzz.log")
 
         if coverage:            
             command = "coverage2 run {}/coapserver.py -i 127.0.0.1 -p 5683".format(self.coap_dir)
