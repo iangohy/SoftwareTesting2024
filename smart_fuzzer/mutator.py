@@ -70,7 +70,7 @@ class Mutator:
             case _:
                 raise Exception("No match for ASCII mutation")
             
-        self.logger.log(f"content mutation for {string:.100s}: {ascii_mutation}")
+        # self.logger.log(f"content mutation for {string:.100s}: {ascii_mutation}")
                 
         return mutator(string, start)
     
