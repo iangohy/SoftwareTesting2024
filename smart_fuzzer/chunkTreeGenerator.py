@@ -31,7 +31,7 @@ class ChunkTreeGenerator:
                 section_chunk_type_config = self.config[child_section].get("type", "object")
                 section_chunk_type = ChunkType[section_chunk_type_config.upper()]
                 mutation_weights = [float(i) for i in self.config[child_section].get('chunkMutationWeights', "0.33 0.33 0.34").split(" ")]
-                content_mutation_weights = [float(i) for i in self.config[child_section].get('contentMutationWeights', "0.2 0.2 0.2 0.1 0.3").split(" ")]
+                content_mutation_weights = [float(i) for i in self.config[child_section].get('contentMutationWeights', "0.2 0.2 0.2 0.05 0.35").split(" ")]
                 section_chunk = SChunk(child_section, 
                                        self.config[child_section].get('content', 'None'), 
                                        self.config[child_section].getboolean("removable", True), 
