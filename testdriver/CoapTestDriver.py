@@ -191,14 +191,25 @@ class CoapTestDriver:
         blacklist = ["segmentation fault", "core dumped"]
         logger.debug(f"Blacklist is: {blacklist}")
 
-        try:
-            stdout_data, _ = process.communicate(timeout)
-            logger.debug(f"stdout_data: {stdout_data}")
-            if logfile:
-                logfile.write(stdout_data)
-                check_for_blacklist_phrase(stdout_data, blacklist)
-        except TimeoutExpired:
-            raise TestDriverCrashDetected("CoAP server not responding to SIGNINT after 10s")
+        start_time = time.time()
+        timeout = start_time + timeout
+
+        while time.time() < timeout:
+            os.set_blocking(process.stdout.fileno(), False)
+            try:
+                stdout_data = process.stdout.readline()
+            except UnicodeDecodeError as e:
+                logger.exception(e)
+                continue
+            if stdout_data:
+                logger.debug(f"stdout_data: {stdout_data}")
+                if logfile:
+                    logfile.write(stdout_data)
+                    check_for_blacklist_phrase(stdout_data, blacklist)
+            if process.poll() is not None:
+                return        
+                
+        raise TestDriverCrashDetected("CoAP server not responding to SIGNINT after 10s")
 
         # while True:
         #     # if self.exit_event.is_set():
