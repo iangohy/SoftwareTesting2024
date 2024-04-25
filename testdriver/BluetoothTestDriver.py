@@ -135,15 +135,6 @@ class BluetoothTestDriver():
         
         logger.info("===END===")
     
-    def analyze_results(self, response):
-        # Analyze the results of the server response
-        pass
-    
-    def interpret(self, input_data):
-        # interpret ASCII to fit to request
-        
-        return 0
-    
     def parse_lcov_lines(self, lines:list[str]):
         count = 0
         array = [{}]

@@ -112,13 +112,17 @@ class CoapTestDriver:
             logger.info(f"Running command: {command}")
             process_two = Popen(command, stdout=PIPE, stderr=STDOUT, text=True, shell=True, start_new_session=True)
             
+            if test_number is not None:
+                testfile_name = f"{self.log_folderpath}/coap_testdriver_testfile_{test_number}.log"
+                testdriverfile_name = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
+            else:
+                testfile_name = f"{self.log_folderpath}/coap_testdriver_testfile_{int(time.time())}.log"
+                testdriverfile_name = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
+                
+            
             # WAIT FOR TEST CASE TO FINISH
             logger.info("Waiting for test file to complete")
-            if test_number is not None:
-                filename = f"{self.log_folderpath}/coap_testdriver_testfile_{test_number}.log"
-            else:
-                filename = f"{self.log_folderpath}/coap_testdriver_testfile_{int(time.time())}.log"
-            with open(filename, "w") as file:
+            with open(testfile_name, "w") as file:
                     try:
                         self.process_stdout(process_two, file, 20)
                     except TestDriverCrashDetected:
@@ -130,11 +134,7 @@ class CoapTestDriver:
             os.killpg(os.getpgid(process_one.pid), signal.SIGINT) 
 
             try:
-                if test_number is not None:
-                    filename = f"{self.log_folderpath}/coap_testdriver_{test_number}.log"
-                else:
-                    filename = f"{self.log_folderpath}/coap_testdriver_{int(time.time())}.log"
-                with open(filename, "w") as file:
+                with open(testdriverfile_name, "w") as file:
                     self.process_stdout(process_one, file, 10)
             except TestDriverCrashDetected as e:
                 if e.code != -2:

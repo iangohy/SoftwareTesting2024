@@ -156,16 +156,6 @@ class DjangoTestDriver:
             # os.system("python3 {}manage.py test testdriver/".format(self.django_dir))
             logging.info("Run complete for {}".format(text_to_replace))
             return self.send_request(text_to_replace)
-
-
-    def analyze_results(self, response):
-        # Analyze the results of the server response
-        pass
-    
-    def interpret(self, input_data):
-        # interpret ASCII to fit to request
-        
-        return 0
     
     def is_interesting(self, mode:str = 'hash'):
         # Opens the coverage JSON report
