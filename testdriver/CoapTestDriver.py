@@ -208,7 +208,7 @@ class CoapTestDriver:
                     check_for_blacklist_phrase(stdout_data, blacklist)
             if process.poll() is not None:
                 return        
-                
+        process.kill()
         raise TestDriverCrashDetected("CoAP server not responding to SIGNINT after 10s")
 
         # while True:
