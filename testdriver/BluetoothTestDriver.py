@@ -114,6 +114,12 @@ class BluetoothTestDriver():
             logger.exception(e)
             logger.error(f"Test driver crashed while running test case: {handle}, {payload}")
             # Failure true
+            if test_number is not None:
+                filename = f"{self.log_folderpath}/bluetooth_testdriver_crash_{test_number}.log"
+            else:
+                filename = f"{self.log_folderpath}/bluetooth_testdriver_crash_{int(time.time())}.log"
+            with open(filename, "w") as file:
+                file.write(json.dumps({"handle": handle, "payload": payload}))
             return (True, False, {})
         
         if coverage:
