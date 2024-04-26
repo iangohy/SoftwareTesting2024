@@ -10,21 +10,22 @@ import time
 from smart_fuzzer.schunk import SChunk
 
 class MainFuzzer:
-    def __init__(self, seedQ: List[Any], oracle: Oracle, stats_collector, max_fuzz_cycles=10, energy_strat='hash', exponent=2, chunk_mutation_enable=True, content_mutation_enable=True):
+    def __init__(self, seedQ: List[Any], oracle: Oracle, stats_collector, max_fuzz_cycles=10, energy_strat='hash', chunk_mutation_enable=True, content_mutation_enable=True):
         """
         seedQ[i]: list of tuples in form (chunk, is_interesting_metric)
         energy_strat = 'hash' OR 'distance'
         """
+        self.mutator = Mutator(None, mode='ascii') # set the mode here, seed here is for random
+        self.oracle = oracle
+        
         self.original_seedQ = seedQ
         self.seedQ = copy.deepcopy(seedQ)
         self.failureQ = []
         self.total_failures_found = 0
-        self.oracle = oracle
         self.max_fuzz_cycles = max_fuzz_cycles
-        # TODO remove unused
-        self.mutator = Mutator(None, mode='ascii') # set the mode here, seed here is for random
-        self.seed_idx = 0
-        self.first_flag = True # flag to check if first run of fuzzer
+        
+        # flag to check if first run of fuzzer
+        self.first_flag = True 
         self.prev_energy = 100
         self.energy = 100
         self.energy_strat = energy_strat
@@ -34,28 +35,30 @@ class MainFuzzer:
         self.total_distance = 1
         self.num_dist = 1
         self.total_paths_reached = 1
-        self.exponent = exponent
+        
         # store parent seed validity
         self.validity= 0
+        
         # store some stats to report
         self.stats_collector = stats_collector
         self.logger = logging.getLogger(__name__)
+        
         # enable mutation
         self.chunk_mutation_enable = chunk_mutation_enable
         self.content_mutation_enable = content_mutation_enable
 
         self.logger.info(f"MainFuzzer initialised: max_fuzz_cycles={self.max_fuzz_cycles},energy_strat={self.energy_strat},chunk_mutation_enable={self.chunk_mutation_enable},content_mutation_enable={self.content_mutation_enable}")
 
-    def reset(self):
-        self.energy = 100
-        self.first_flag = True
+    # def reset(self):
+    #     self.energy = 100
+    #     self.first_flag = True
             
-    def set_seed(self, seed):
-        """reset seeds of fuzzer to new seed"""
-        self.original_seed = seed
-        self.seed = seed
+    # def set_seed(self, seed):
+    #     """reset seeds of fuzzer to new seed"""
+    #     self.original_seed = seed
+    #     self.seed = seed
         
-    def degree_of_validity(self, seed, valid_inputs):
+    def degree_of_validity(self, valid_inputs):
         self.validity = valid_inputs / self.energy
         return valid_inputs / self.energy
         
@@ -67,24 +70,28 @@ class MainFuzzer:
             # TODO: increase in the future but we start small for now
             self.energy = self.initial_energy
         elif self.energy_strat == "hash":
-            # calculate based on path id
+            # Calculate based on path id
             hash = seed[1]
             if hash not in self.path_ids:
                 self.path_ids[hash] = 1
+            else:
+                self.path_ids[hash] += 1 # increment because hash has been hit again?
+                
             times_cur_path_reached = self.path_ids[hash]
             self.total_paths_reached += 1
             mean_freq = self.total_paths_reached / len(self.path_ids) 
-            if times_cur_path_reached > mean_freq:
-                # dont fuzz this if the frequency is zero
-                self.energy = 0 
+            
+            
+            if times_cur_path_reached > mean_freq:                
                 # TODO maybe move to position 0? else every single seed mutated from a popular 
                 # path will be skipped entirely
+                # dont fuzz this if the frequency is zero
+                self.energy = 0 
             else:
-                # maximum of 150 000 for high freq paths
+                # maximum of 50 for high freq paths
                 self.logger.debug(f"times_cur_path_reached: {times_cur_path_reached}")
                 self.energy = int(min((self.initial_energy * (2 ** times_cur_path_reached), self.cut_off_energy)))
-            # TODO: does this cause duplicate addition since we already add hash above
-            self.path_ids[hash] += 1 # increment because hash has been hit
+            
         elif self.energy_strat == "distance":
             # calculate based on coverage of missing branches, larger => more missing branches hit
             # ie has travelled further
@@ -114,14 +121,14 @@ class MainFuzzer:
         seed = self.seedQ.pop(item_to_pop)
         return seed
     
-    def mutate(self):
-        # unused, TODO remove when confirmed unused
-        mutated_seed = self.mutator.mutate(mutated_seed)
-        self.seedQ.append(mutated_seed)
+    # def mutate(self):
+    #     # unused, TODO remove when confirmed unused
+    #     mutated_seed = self.mutator.mutate(mutated_seed)
+    #     self.seedQ.append(mutated_seed)
         
-    def getQueues(self):
-        """Return seedQ and failureQ"""
-        return self.seedQ, self.failureQ
+    # def getQueues(self):
+    #     """Return seedQ and failureQ"""
+    #     return self.seedQ, self.failureQ
 
         
     def fuzz(self):
@@ -147,6 +154,8 @@ class MainFuzzer:
                 generate_starttime = time.time_ns()
                 mutated_chunk = copy.deepcopy(next_input)
                 self.logger.info(f">> Energy cycle: {i+1}/{energy}")
+                
+                # full mutation consists of 2 passes of mutations, 1 pass for chunk mutations, 1 pass for content mutation
                 if self.chunk_mutation_enable:
                     mutated_chunk.mutate_chunk_tree()
                 if self.content_mutation_enable:
@@ -176,7 +185,7 @@ class MainFuzzer:
                         data = None
                     self.seedQ.append((mutated_chunk, data))
             # record the validity of this previous seed
-            self.validity = self.degree_of_validity(next_input, valid_inputs)
+            self.validity = self.degree_of_validity(valid_inputs)
             self.prev_energy = energy
             self.stats_collector.complete_fuzzing_cycle()
         return 

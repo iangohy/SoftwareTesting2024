@@ -31,9 +31,6 @@ class SChunk:
     
     def get_children(self):
         return self.children
-    
-    def get_child(self, child_key):
-        return self.children[child_key]
 
     def add_child(self, child_chunk):
         self.children[child_chunk.chunk_name] = child_chunk
@@ -44,8 +41,6 @@ class SChunk:
     
     def get_lookup_chunk(self, lookup_chunk_name):
         return self.lookup_chunks[lookup_chunk_name]
-
-    # full mutation consists of 2 passes of mutations, 1 pass for chunk mutations, 1 pass for content mutation
 
     # mutate_chunk_tree mutates all chunks starting from the current chunk this function is called on
     def mutate_chunk_tree(self):
@@ -71,27 +66,6 @@ class SChunk:
 
             for chunk in self.children.values():
                 chunk.mutate_chunk_tree()
-
-    # mutate_chunk mutates the current chunk's children only, if it has any
-    def mutate_single_chunk(self):
-        if not self.children:
-            return
-        else:
-            mutation = random.choices(list(ChunkMutate), self.chunk_mutation_weights)
-            output = list(self.children.items())
-            match mutation:
-                case ChunkMutate.ADD_CHUNK:
-                    output = self.add_chunk(output)
-
-                case ChunkMutate.REMOVE_CHUNK:
-                    output = self.remove_chunk(output)
-
-                case ChunkMutate.NO_MUTATION:
-                    output = output
-
-            self.children = {}
-            for tup in output:
-                self.children[tup[1].chunk_name] = tup[1]
 
     # Mutate chunk_content a random number of times, applying a random ascii mutation each time for n times
     # (e.g run ASCIIMutations.FLIP_BIT 3 times followed by ASCIIMutations.DELETE 2 times) 
@@ -154,8 +128,6 @@ class SChunk:
                     return self.chunk_content
                 
                 for child in self.children.values():
-                    # self.logger.log(child)
-                    # self.logger.log(child.get_content())
                     res += str(child.get_content())
 
                 return res
@@ -180,3 +152,25 @@ class SChunk:
     
     def __repr__(self):
         return f"<SChunk Object id={id(self)},name={self.chunk_name},content={self.chunk_content},num_children={len(self.children)},removable={self.removable},chunk_mutation_weights={self.chunk_mutation_weights},content_mutation_weights={self.content_mutation_weights}>"
+    
+    
+    # mutate_chunk mutates the current chunk's children only, if it has any
+    # def mutate_single_chunk(self):
+    #     if not self.children:
+    #         return
+    #     else:
+    #         mutation = random.choices(list(ChunkMutate), self.chunk_mutation_weights)
+    #         output = list(self.children.items())
+    #         match mutation:
+    #             case ChunkMutate.ADD_CHUNK:
+    #                 output = self.add_chunk(output)
+
+    #             case ChunkMutate.REMOVE_CHUNK:
+    #                 output = self.remove_chunk(output)
+
+    #             case ChunkMutate.NO_MUTATION:
+    #                 output = output
+
+    #         self.children = {}
+    #         for tup in output:
+    #             self.children[tup[1].chunk_name] = tup[1]
