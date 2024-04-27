@@ -30,8 +30,7 @@ class DjangoTestDriver:
         payload = chunk.get_lookup_chunk("payload").get_content()
         logger.info(f"method: {method}")
         logger.info(f"endpoint: {endpoint}")
-        # logger.info(f"payload: {str(payload):.50s}")
-        logger.info(f"payload: {payload}")
+        logger.info(f"payload: {str(payload):.50s}")
 
         return self.send_request_with_interesting(
             endpoint=endpoint,
@@ -133,12 +132,17 @@ class DjangoTestDriver:
             except TestDriverCrashDetected as e:
                 logger.exception(e)
                 logger.error(f"Test driver crashed while running test case: {input_data}")
-                # TODO: determine return values on crash
+                # Log crash
+                if test_number is not None:
+                    filename = f"{self.log_folderpath}/django_testdriver_crash_{test_number}.log"
+                else:
+                    filename = f"{self.log_folderpath}/django_testdriver_crash_{int(time.time())}.log"
+                with open(filename, "w") as file:
+                    file.write(json.dumps({"endpoint": endpoint, "input_data": input_data, "method": method}))
                 return (True, None, None)
 
             is_interesting, cov_data = self.is_interesting(mode)
-            # logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
-            logging.info("Coverage run complete for {}".format(str(text_to_replace)))
+            logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
             logging.info("Is it interesting? {}".format(is_interesting))
             
             response = None

@@ -34,8 +34,7 @@ class CoapTestDriver:
         payload = chunk.get_lookup_chunk("payload").get_content()
         logger.info(f"method: {code}")
         logger.info(f"endpoint: {endpoint}")
-        # logger.info(f"payload: {str(payload):.50s}")
-        logger.info(f"payload: {payload}")
+        logger.info(f"payload: {str(payload):.50s}")
         
         return self.send_request_with_interesting(
             code=code,
@@ -142,6 +141,12 @@ class CoapTestDriver:
                     logger.error(f"Test driver crashed while running test case: {input_data}")
                     # TODO: determine return values on crash
                     # Failure true
+                    if test_number is not None:
+                        filename = f"{self.log_folderpath}/coap_testdriver_crash_{test_number}.log"
+                    else:
+                        filename = f"{self.log_folderpath}/coap_testdriver_crash_{int(time.time())}.log"
+                    with open(filename, "w") as file:
+                        file.write(json.dumps({"endpoint": endpoint, "input_data": input_data, "code": code}))
                     return (True, False, {})
             
             # WAIT FOR COAP SERVER TO END
@@ -165,10 +170,9 @@ class CoapTestDriver:
                 try:
                     is_interesting, cov_data = self.is_interesting(mode)
                 except Exception as e:
-                    # Failure true
-                    return (True, False, {})
-                # logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
-                logging.info("Coverage run complete for {}".format(str(text_to_replace)))
+                    # Unable to get coverage data, not failure
+                    return (False, False, {})
+                logging.info("Coverage run complete for {:.100}".format(str(text_to_replace)))
                 logging.info("Is it interesting? {}".format(is_interesting))
             
                 try:
