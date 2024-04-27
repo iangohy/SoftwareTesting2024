@@ -1,17 +1,24 @@
 import matplotlib.pyplot as plt
 import json
 import os
+import pandas as pd
 
 base_folderpath = os.path.expanduser("~/Downloads")
 
-### Done
-# prepend_string = "django_ian_"
-# testcase_data = {
-#     "A": ["A1_ian", "A2_ian", "A3_ian", "A4_ian", "A5_ian"],
-#     "B": ["B6_ian", "B7_ian", "B8_ian", "B9_ian", "B10_ian"],
-#     "C": ["C11_ian", "C12_ian", "C13_ian", "C14_ian", "C15_ian"],
-#     "X": ["X100_ian", "X101_ian", "X102_ian", "X103_ian", "X104_ian"]
-# }
+prepend_string = "django_final_"
+testcase_data = {
+    "A": ["A1_v2", "A2_v2", "A3_v2", "A4_v2", "A5_v2"],
+    "B": ["B6_v2", "B7_v2", "B8_v2", "B9_v2", "B10_v2"],
+    "C": ["C11_v2", "C12_v2", "C13_v2", "C14_v2", "C15_v2"],
+    # "X": ["X100_v2", "X101_v2", "X102_v2", "X103_v2", "X104_v2"]
+}
+# Manually input as have to verify whether crash is unique
+unique_crashes_count = {
+    "A": [69, 69, 69, 69, 69],
+    "B": [69, 69, 69, 69, 69],
+    "C": [69, 69, 69, 69, 69],
+    "X": [69, 69, 69, 69, 69],
+}
 
 # prepend_string = "django_chrisw_"
 # testcase_data = {
@@ -47,13 +54,13 @@ base_folderpath = os.path.expanduser("~/Downloads")
 # }
 
 ### Done
-prepend_string = "ble_jiahui_"
-testcase_data = {
-    "G": ["G31_jiahui", "G32_jiahui", "G33_jiahui", "G34_jiahui", "G35_jiahui"],
-    "H": ["H36_jiahui", "H37_jiahui", "H38_jiahui", "H39_jiahui", "H40_jiahui"],
-    "I": ["I41_jiahui", "I42_jiahui", "I43_jiahui", "I44_jiahui", "I45_jiahui"],
-    "Z": ["Z110_jiahui", "Z111_jiahui", "Z112_jiahui", "Z113_jiahui", "Z114_jiahui"]
-}
+# prepend_string = "ble_jiahui_"
+# testcase_data = {
+#     "G": ["G31_jiahui", "G32_jiahui", "G33_jiahui", "G34_jiahui", "G35_jiahui"],
+#     "H": ["H36_jiahui", "H37_jiahui", "H38_jiahui", "H39_jiahui", "H40_jiahui"],
+#     "I": ["I41_jiahui", "I42_jiahui", "I43_jiahui", "I44_jiahui", "I45_jiahui"],
+#     "Z": ["Z110_jiahui", "Z111_jiahui", "Z112_jiahui", "Z113_jiahui", "Z114_jiahui"]
+# }
 
 interesting_data_full = {}
 time_data_full = {}
@@ -102,7 +109,7 @@ for testcase in testcase_data:
     plt.clf()
     plt.plot(interesting_average)
     plt.title(f"RQ1: Testcase {testcase} - Interesting test cases found\n against number of test cases (averaged over 5 experiments)")
-    graph_filepath = f"{prepend_string}testcase_{testcase}_interesting_average.png"
+    graph_filepath = f"{prepend_string}testcase_{testcase}_r1_interesting_average.png"
     plt.savefig(graph_filepath)
     print(f"RQ1 saved as {graph_filepath}")
 
@@ -133,12 +140,19 @@ for testcase in testcase_data:
     # RQ4: Stability
     print("\n---------------\nRQ4\n---------------")
     plt.clf()
+    width = 0.4
     testcase_interesting_found = [x[-1] for x in interesting_data]
-    plt.bar([i.split("_")[0] for i in stats_folders], testcase_interesting_found, width=0.4)
-    plt.title(f"RQ4: Stability study of Testcase {testcase} (#interesting)")
-    # plt.legend()
+    unique_crashes = unique_crashes_count[testcase]
+
+    df = pd.DataFrame({ 
+        "Testcase": [i.split("_")[0] for i in stats_folders],
+        "Unique Crashes": unique_crashes,
+        "Interesting test cases": testcase_interesting_found 
+    }) 
+  
+    ax = df.plot(x="Testcase", y=["Interesting test cases", "Unique Crashes"], kind="bar", title=f"RQ4: Stability study of Testcase {testcase}")
     graph_filepath = f"{prepend_string}testcase_{testcase}_stability.png"
-    plt.savefig(graph_filepath)
+    ax.get_figure().savefig(graph_filepath)
     print(f"RQ4 saved as {graph_filepath}")
 
 # Save timing data to csv
